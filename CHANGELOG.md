@@ -6,6 +6,18 @@ Format: Keep a Changelog. Semantic Versioning.
 
 <!-- changelog:auto -->
 
+## [1.0.16] - 2026-11-26
+
+### Changed
+- Rebased both build stages on `debian:13.8-slim` pinned by digest; Debian packages replace Alpine packages for the full netshoot-equivalent toolkit.
+- All Go tools are compiled from official pinned sources with Go 1.27.4 and patched module versions to clear every fixable finding; Rust static tools and swaks remain SHA-256 verified.
+- CI resolves the Debian base digest and FNXNT version, builds arm64 on a native runner, waits for Docker `healthy` on both architectures, and syncs the Docker Hub overview.
+
+### Security
+- Trivy + Grype hard gate: zero fixable findings of any severity on both architectures.
+
+---
+
 ## [1.0.15] - 2026-11-25
 
 ### Changed

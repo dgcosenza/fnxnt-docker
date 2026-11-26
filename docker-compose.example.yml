@@ -6,6 +6,6 @@ services:
     volumes:
       - ./captures:/captures
   app:
-    image: nginx:alpine
+    image: nginx:stable
     ports:
       - "80:80"

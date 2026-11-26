@@ -1,6 +1,8 @@
 {
-  "fnxnt_version": "1.0.15",
-  "alpine_version": "3.24.4",
+  "fnxnt_version": "1.0.16",
+  "debian_version": "13.8",
+  "base_image": "debian:13.8-slim",
+  "base_digest": "sha256:8aa5a7bf5a1955bddbe7d74fcdd0b91ab30e74362a8b73af672b0481b35b44a0",
   "components": {
     "ctop": "0.7.7",
     "calicoctl": "3.33.1",
@@ -9,13 +11,13 @@
     "fortio": "1.77.0",
     "websocat": "1.14.2",
     "trippy": "0.13.0",
-    "hey": "0.1.5",
     "kubecolor": "0.9.0",
     "kubectx": "0.11.0",
     "kubens": "0.11.0",
     "kubelogin": "1.36.4",
-    "swaks": "v20240103.0",
-    "kubectl": "latest stable"
+    "yq": "4.54.3",
+    "kubectl": "latest stable",
+    "Debian": "13.8 (stable slim)"
   },
   "architectures": [
     "linux/amd64",

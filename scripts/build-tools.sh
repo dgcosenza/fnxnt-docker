@@ -50,7 +50,9 @@ echo "==> building ctop"
 git clone --quiet --depth 1 --branch v0.7.7 https://github.com/bcicen/ctop.git /src/ctop
 cd /src/ctop
 go mod download 2>/dev/null || true
-go get github.com/fsouza/go-dockerclient@v1.13.3 github.com/opencontainers/runc@v1.5.3 github.com/containerd/containerd@v1.7.36
+# runc v1.2.8 is the newest release that still ships the cgroups packages
+# ctop imports, and it is also one of the published fixed versions.
+go get github.com/fsouza/go-dockerclient@v1.13.3 github.com/opencontainers/runc@v1.2.8 github.com/containerd/containerd@v1.7.36
 go mod edit -droprequire=github.com/docker/docker
 go get "${PATCH_MODULES[@]}"
 go build -mod=mod -trimpath -ldflags='-s -w' -o /out/ctop .

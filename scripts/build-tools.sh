@@ -6,7 +6,7 @@
 set -euo pipefail
 
 ARCH="${TARGETARCH:-amd64}"
-export CGO_ENABLED=0 GOOS=linux GOARCH="${ARCH}" GOTOOLCHAIN=local GOPROXY=https://proxy.golang.org,direct
+export CGO_ENABLED=0 GOOS=linux GOARCH="${ARCH}" GOTOOLCHAIN=local GOPROXY=https://proxy.golang.org,direct GOWORK=off
 mkdir -p /out /src
 
 # Modules with published fixes for findings present in the older upstream pins.

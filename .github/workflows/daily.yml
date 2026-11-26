@@ -12,8 +12,8 @@ on:
       - main
   workflow_dispatch:
     inputs:
-      samba_version:
-        description: 'Optional override label (leave empty to resolve from Debian 13 feeds)'
+      fnxnt_version:
+        description: 'Optional FNXNT version override (leave empty to use the Dockerfile pin)'
         required: false
         default: ''
 
@@ -86,14 +86,13 @@ jobs:
         run: gitleaks git --verbose --redact --no-banner
 
   resolve:
-    name: Resolve upstream Samba package and base digest
+    name: Resolve FNXNT version and Debian base digest
     needs: [public-check, hadolint, gitleaks]
     runs-on: ubuntu-latest
     permissions:
       contents: read
     outputs:
-      samba_version: ${{ steps.resolve.outputs.samba_version }}
-      samba_deb_version: ${{ steps.resolve.outputs.samba_deb_version }}
+      fnxnt_version: ${{ steps.resolve.outputs.fnxnt_version }}
       debian_base: ${{ steps.resolve.outputs.debian_base }}
       base_digest: ${{ steps.resolve.outputs.base_digest }}
       build_date: ${{ steps.resolve.outputs.build_date }}
@@ -105,26 +104,15 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Resolve latest Debian 13 Samba version and base digest
+      - name: Resolve FNXNT metadata and Debian base digest
         id: resolve
         shell: bash
         env:
-          OVERRIDE_SAMBA: ${{ inputs.samba_version }}
+          GH_TOKEN: ${{ github.token }}
+          OVERRIDE_FNXNT: ${{ inputs.fnxnt_version }}
         run: |
           set -euo pipefail
           python3 .github/scripts/resolve-versions.py
-
-          BASE_DIGEST="$(curl -fsSL "https://hub.docker.com/v2/repositories/library/debian/tags/trixie-slim" | jq -r '.digest // empty')"
-          DEBIAN_BASE="debian:trixie-slim"
-          [ -n "$BASE_DIGEST" ] && DEBIAN_BASE="${DEBIAN_BASE}@${BASE_DIGEST}"
-
-          {
-            echo "debian_base=${DEBIAN_BASE}"
-            echo "base_digest=${BASE_DIGEST}"
-            echo "build_date=$(date -u +%Y%m%d)"
-            echo "build_date_iso=$(date -u +%Y-%m-%d)"
-            echo "created=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          } >> "$GITHUB_OUTPUT"
 
       - name: Upload upstream changes artifact
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -178,6 +166,8 @@ jobs:
           tags: |
             ${{ env.IMAGE_NAME }}:ci-candidate-${{ matrix.arch }}
           build-args: |
+            DEBIAN_BASE=${{ needs.resolve.outputs.debian_base }}
+            FNXNT_VERSION=${{ needs.resolve.outputs.fnxnt_version }}
             IMAGE_CREATED=${{ needs.resolve.outputs.created }}
             IMAGE_REVISION=${{ github.sha }}
             IMAGE_SOURCE=https://github.com/${{ github.repository }}
@@ -190,16 +180,15 @@ jobs:
         run: |
           set -euo pipefail
           IMG="${IMAGE_NAME}:ci-candidate-${ARCH}"
-          ALPINE_VERSION="$(docker run --rm --entrypoint sh "$IMG" -c 'cat /etc/alpine-release' | tr -d '\r\n')"
+          DEBIAN_VERSION="$(docker run --rm --entrypoint sh "$IMG" -c 'cat /etc/debian_version' | tr -d '\r\n')"
           SIZE_BYTES="$(docker image inspect --format='{{.Size}}' "$IMG")"
           SIZE_MB="$(python3 -c "print(f'{int(${SIZE_BYTES})/1000000:.1f}')")"
           {
-            echo "debian_version=${ALPINE_VERSION}"
-            echo "samba_deb_version=n/a"
+            echo "debian_version=${DEBIAN_VERSION}"
             echo "size_bytes=${SIZE_BYTES}"
             echo "size_mb=${SIZE_MB}"
           } >> "$GITHUB_OUTPUT"
-          echo "Detected (${ARCH}): Alpine=${ALPINE_VERSION}, Size=${SIZE_MB} MB"
+          echo "Detected (${ARCH}): Debian=${DEBIAN_VERSION}, Size=${SIZE_MB} MB"
           echo "### Image size (${ARCH}): **${SIZE_MB} MB** (${SIZE_BYTES} bytes)" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Smoke-test container (${{ matrix.arch }})
@@ -288,7 +277,7 @@ jobs:
         uses: github/codeql-action/upload-sarif@38112626f97ac1fd7acf3df7ebca51f4677c1b38 # codeql-bundle-v2.27.6
         with:
           sarif_file: 'trivy-results-${{ matrix.arch }}.sarif'
-          category: trivy-samba-${{ matrix.arch }}
+          category: trivy-fnxnt-${{ matrix.arch }}
 
       - name: Scan image with Trivy — HARD GATE (0 fixable CRITICAL/HIGH, ${{ matrix.arch }})
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
@@ -327,6 +316,8 @@ jobs:
           sbom: false
           outputs: type=image,name=ghcr.io/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
           build-args: |
+            DEBIAN_BASE=${{ needs.resolve.outputs.debian_base }}
+            FNXNT_VERSION=${{ needs.resolve.outputs.fnxnt_version }}
             IMAGE_CREATED=${{ needs.resolve.outputs.created }}
             IMAGE_REVISION=${{ github.sha }}
             IMAGE_SOURCE=https://github.com/${{ github.repository }}
@@ -337,7 +328,6 @@ jobs:
           ARCH: ${{ matrix.arch }}
           DIGEST: ${{ steps.push_digest.outputs.digest }}
           DEBIAN_VERSION: ${{ steps.inspect_image.outputs.debian_version }}
-          SAMBA_DEB: ${{ steps.inspect_image.outputs.samba_deb_version }}
           SIZE_BYTES: ${{ steps.inspect_image.outputs.size_bytes }}
           SIZE_MB: ${{ steps.inspect_image.outputs.size_mb }}
         run: |
@@ -346,10 +336,9 @@ jobs:
             --arg arch "$ARCH" \
             --arg digest "$DIGEST" \
             --arg debian_version "$DEBIAN_VERSION" \
-            --arg samba_deb "$SAMBA_DEB" \
             --arg size_mb "$SIZE_MB" \
             --argjson size_bytes "$SIZE_BYTES" \
-            '{arch: $arch, digest: $digest, debian_version: $debian_version, samba_deb: $samba_deb, size_mb: $size_mb, size_bytes: $size_bytes}' \
+            '{arch: $arch, digest: $digest, debian_version: $debian_version, size_mb: $size_mb, size_bytes: $size_bytes}' \
             > "arch-meta-${ARCH}.json"
 
       - name: Upload per-arch reports, SBOMs, and metadata
@@ -439,7 +428,7 @@ jobs:
         id: index
         shell: bash
         env:
-          VER: ${{ needs.resolve.outputs.samba_version }}
+          VER: ${{ needs.resolve.outputs.fnxnt_version }}
           BDATE: ${{ needs.resolve.outputs.build_date }}
           HUB_ENABLED: ${{ steps.hub_auth.outputs.enabled }}
         run: |
@@ -523,7 +512,7 @@ jobs:
         shell: bash
         env:
           TAG: ${{ steps.index.outputs.date_tag }}
-          VER: ${{ needs.resolve.outputs.samba_version }}
+          VER: ${{ needs.resolve.outputs.fnxnt_version }}
           INDEX_DIGEST: ${{ steps.index.outputs.index_digest }}
           DIG_AMD64: ${{ steps.index.outputs.amd64_digest }}
           DIG_ARM64: ${{ steps.index.outputs.arm64_digest }}
@@ -539,7 +528,6 @@ jobs:
           AMD64_MB="$(jq -r '.size_mb' .ci-in/arch-artifacts-amd64/arch-meta-amd64.json)"
           ARM64_MB="$(jq -r '.size_mb' .ci-in/arch-artifacts-arm64/arch-meta-arm64.json)"
           DEBIAN_VER="$(jq -r '.debian_version' .ci-in/arch-artifacts-amd64/arch-meta-amd64.json)"
-          SAMBA_DEB="$(jq -r '.samba_deb' .ci-in/arch-artifacts-amd64/arch-meta-amd64.json)"
 
           (
             cd .rel
@@ -556,13 +544,13 @@ jobs:
           )
 
           cat > .rel/notes.md <<EOF
-          ## Samba ${VER} (${TAG})
+          ## FNXNT ${VER} (${TAG})
 
           Maintained by **Daniel G. Cosenza from FNX Labs**.
 
           ### Verified Components
-          - **Samba:** \`${VER}\` (Debian package \`${SAMBA_DEB}\`)
-          - **Base OS:** Debian \`${DEBIAN_VER}\` (\`trixie-slim\`)
+          - **FNXNT:** \`${VER}\`
+          - **Base OS:** Debian \`${DEBIAN_VER}\` (\`13.8-slim\`)
           - **Architectures:** \`linux/amd64\` (${AMD64_MB} MB), \`linux/arm64\` (${ARM64_MB} MB)
           - **Security gate:** 0 fixable findings of any severity (Trivy + Grype on SPDX SBOM), Dive efficiency >= 95%
 
@@ -590,21 +578,21 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.index.outputs.date_tag }}
-          VER: ${{ needs.resolve.outputs.samba_version }}
+          VER: ${{ needs.resolve.outputs.fnxnt_version }}
           INDEX_DIGEST: ${{ steps.index.outputs.index_digest }}
           BUNDLE_PATH: ${{ steps.attest_release.outputs.bundle-path }}
         run: |
           set -euo pipefail
           cp "$BUNDLE_PATH" .rel/checksums.txt.intoto.jsonl
           if gh release view "$TAG" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release edit "$TAG" -R "$GITHUB_REPOSITORY" --title "Samba ${VER} (${TAG})" --notes-file .rel/notes.md
+            gh release edit "$TAG" -R "$GITHUB_REPOSITORY" --title "FNXNT ${VER} (${TAG})" --notes-file .rel/notes.md
             gh release upload "$TAG" -R "$GITHUB_REPOSITORY" --clobber \
               .rel/checksums.txt .rel/checksums.txt.sigstore.json .rel/checksums.txt.intoto.jsonl \
               .rel/sbom-amd64.spdx.json .rel/sbom-amd64.cdx.json \
               .rel/sbom-arm64.spdx.json .rel/sbom-arm64.cdx.json
           else
             gh release create "$TAG" -R "$GITHUB_REPOSITORY" \
-              --title "Samba ${VER} (${TAG})" \
+              --title "FNXNT ${VER} (${TAG})" \
               --notes-file .rel/notes.md \
               .rel/checksums.txt .rel/checksums.txt.sigstore.json .rel/checksums.txt.intoto.jsonl \
               .rel/sbom-amd64.spdx.json .rel/sbom-amd64.cdx.json \
@@ -618,7 +606,6 @@ jobs:
         run: |
           set -euo pipefail
           DEBIAN_VER="$(jq -r '.debian_version' .ci-in/arch-artifacts-amd64/arch-meta-amd64.json)"
-          SAMBA_DEB="$(jq -r '.samba_deb' .ci-in/arch-artifacts-amd64/arch-meta-amd64.json)"
           AMD64_MB="$(jq -r '.size_mb' .ci-in/arch-artifacts-amd64/arch-meta-amd64.json)"
           ARM64_MB="$(jq -r '.size_mb' .ci-in/arch-artifacts-arm64/arch-meta-arm64.json)"
           HUB_REF=""
@@ -630,10 +617,9 @@ jobs:
 
           jq -n \
             --arg image "${IMAGE_NAME}" \
-            --arg upstream_name "Samba (Debian 13)" \
-            --arg upstream_license "GPL-3.0-or-later" \
-            --arg upstream_version "${{ needs.resolve.outputs.samba_version }}" \
-            --arg samba_deb "${SAMBA_DEB}" \
+            --arg upstream_name "FNXNT (Debian stable)" \
+            --arg upstream_license "Apache-2.0" \
+            --arg upstream_version "${{ needs.resolve.outputs.fnxnt_version }}" \
             --arg debian_version "${DEBIAN_VER}" \
             --arg base_digest "${{ needs.resolve.outputs.base_digest }}" \
             --arg build_date "${{ needs.resolve.outputs.build_date_iso }}" \
@@ -648,8 +634,7 @@ jobs:
               upstream_name: $upstream_name,
               upstream_license: $upstream_license,
               packaging_license: "MIT",
-              samba_version: $upstream_version,
-              samba_deb_version: $samba_deb,
+              fnxnt_version: $upstream_version,
               upstream_version: $upstream_version,
               upstream_commit: "",
               changelog_version: $upstream_version,
@@ -658,10 +643,10 @@ jobs:
               signed: true,
               slsa_provenance: true,
               components: {
-                "Samba": ($upstream_version + " (" + $samba_deb + ")"),
-                "Base OS": ("Debian " + $debian_version + " (trixie-slim)")
+                "FNXNT": $upstream_version,
+                "Base OS": ("Debian " + $debian_version + " (stable-slim)")
               },
-              base_image: "debian:trixie-slim",
+              base_image: "debian:13.8-slim",
               base_digest: $base_digest,
               debian_version: $debian_version,
               build_date: $build_date,
@@ -681,3 +666,33 @@ jobs:
             upstream-changes.md
             cve-diff.json
           retention-days: 90
+
+      - name: Check Docker Hub overview sync credentials
+        id: hub_sync
+        shell: bash
+        env:
+          DH_USER: ${{ secrets.DOCKERHUB_USERNAME }}
+          DH_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -n "$DH_USER" ] && [ -n "$DH_TOKEN" ]; then
+            DESC="$(tr -d '\r\n' < DOCKERHUB_SHORT_DESCRIPTION)"
+            if [ "${#DESC}" -gt 100 ]; then
+              echo "ERROR: short description exceeds 100 characters." >&2
+              exit 1
+            fi
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+            echo "short_desc=${DESC}" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Sync Docker Hub repository overview
+        if: steps.hub_sync.outputs.enabled == 'true'
+        uses: peter-evans/dockerhub-description@1b9a80c056b620d92cedb9d9b5a223409c68ddfa # v5.0.0
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: ${{ env.IMAGE_NAME }}
+          short-description: ${{ steps.hub_sync.outputs.short_desc }}
+          readme-filepath: ./README.md

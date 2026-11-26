@@ -17,7 +17,7 @@ fnxnt_print_banner() {
     🔥 Fenix' Networking Tools v@@FNXNT_VERSION@@ 🔥
     Enterprise Network Diagnostics Platform
     
-    Built on Alpine Linux 3.24.4 | Multi-Architecture Support
+    Built on Debian stable (13.8) | Multi-Architecture Support
     "Rise from the ashes of network issues"
 
     ✅ netshoot-equivalent toolkit + curated enhancements
@@ -171,7 +171,7 @@ fnxnt_print_banner() {
     • calicoctl  v3.33.0         • fortio      v1.76.0
     • termshark  v2.4.0          • websocat    v1.14.1
     • trippy     v0.13.0         • hey         v0.1.5
-    • kubectl    latest stable   • Alpine      3.24.4
+    • kubectl    latest stable   • Debian      13.8 (stable)
     • kubecolor  v0.8.0          • kubectx    v0.11.0
     • kubens     v0.11.0         • kubelogin  v1.36.4
 

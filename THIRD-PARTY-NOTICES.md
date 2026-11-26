@@ -2,9 +2,9 @@
 
 FNXNT bundles third-party software. Each retains its own license.
 
-- Alpine Linux base image — various open-source licenses (https://alpinelinux.org/)
+- Debian stable base image and distro packages — various open-source licenses (https://packages.debian.org/)
 - nicolaka/netshoot — Apache License 2.0 (https://github.com/nicolaka/netshoot)
-- All Alpine packages, Python packages, and downloaded binaries — see their respective upstream licenses.
+- All Debian packages, Python packages, and downloaded binaries — see their respective upstream licenses.
 - ctop — MIT (https://github.com/bcicen/ctop)
 - calicoctl — Apache License 2.0 (https://github.com/projectcalico/calico)
 - termshark — MIT (https://github.com/gcla/termshark)

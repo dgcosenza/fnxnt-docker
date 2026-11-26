@@ -6,6 +6,18 @@ Format: Keep a Changelog. Semantic Versioning.
 
 <!-- changelog:auto -->
 
+## [1.0.16] - 2026-11-26
+
+### Changed
+- Rebased both build stages on `debian:13.8-slim` pinned by digest; Debian packages replace Alpine packages for the full netshoot-equivalent toolkit.
+- All downloaded release binaries are verified by SHA-256 (kubectl uses the publisher SHA-256 file); hey is built from a pinned commit.
+- CI resolves the Debian base digest and FNXNT version, waits for Docker `healthy` on amd64 and arm64, and syncs the Docker Hub overview.
+
+### Security
+- Trivy + Grype hard gate: zero fixable findings of any severity on both architectures.
+
+---
+
 ## [1.0.15] - 2026-11-25
 
 ### Changed

@@ -27,6 +27,7 @@ PATCH_MODULES=(
   gopkg.in/yaml.v3@v3.0.1
   github.com/antchfx/xpath@v1.3.9
   google.golang.org/protobuf@v1.36.12
+  go.etcd.io/etcd/client/pkg/v3@v3.7.4
 )
 
 patch_and_build() {

@@ -21,9 +21,9 @@ ARG TARGETARCH
 ARG DEBIAN_FRONTEND=noninteractive
 
 # hadolint ignore=DL3008
-RUN apt-get update \
-    && apt-get -y upgrade \
-    && apt-get install -y --no-install-recommends git ca-certificates curl tar gzip unzip \
+RUN apt-get -o Acquire::Retries=5 update \
+    && apt-get -o Acquire::Retries=5 -y upgrade \
+    && apt-get -o Acquire::Retries=5 install -y --no-install-recommends git ca-certificates curl tar gzip unzip \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
@@ -67,9 +67,9 @@ ENV LANG=C.UTF-8 \
     DEBIAN_FRONTEND=noninteractive
 
 # hadolint ignore=DL3008
-RUN apt-get update \
-    && apt-get -y upgrade \
-    && apt-get install -y --no-install-recommends \
+RUN apt-get -o Acquire::Retries=5 update \
+    && apt-get -o Acquire::Retries=5 -y upgrade \
+    && apt-get -o Acquire::Retries=5 install -y --no-install-recommends \
         apache2-utils bash bind9-dnsutils bird2 bridge-utils btop busybox-static \
         ca-certificates conntrack coreutils curl dhcping eza fastfetch file fping \
         git gnupg httpie iftop iperf iperf3 iproute2 ipset iptables iptraf-ng \
@@ -153,8 +153,8 @@ EOF
 
 # hadolint ignore=DL3013
 RUN set -eux; \
-    pip3 install --no-cache-dir --break-system-packages \
-        dnspython netaddr netifaces2 pyshark requests; \
+    pip3 install --no-cache-dir --break-system-packages --upgrade \
+        dnspython jaraco-context netaddr netifaces2 pyshark requests wheel; \
     rm -rf /root/.cache/pip /tmp/* /var/tmp/*
 
 # hadolint ignore=SC2016

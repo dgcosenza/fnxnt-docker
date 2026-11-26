@@ -25,8 +25,8 @@ FNXNT is a network troubleshooting and diagnostics container built on the curren
 | Architectures | `linux/amd64, linux/arm64` |
 | Uncompressed size (per arch) | `amd64: 349.8 MB, arm64: 1082.0 MB` |
 | Last verified build (UTC) | `2026-11-26` |
-| Published multi-arch digest | `dgcosenza/fnxnt@sha256:7ef1699eb6f91ce1ebacbd343cb4992d8238c5694de23a456fff530ebb71a217` |
-| GHCR mirror | `ghcr.io/dgcosenza/fnxnt@sha256:7ef1699eb6f91ce1ebacbd343cb4992d8238c5694de23a456fff530ebb71a217` |
+| Published multi-arch digest | `dgcosenza/fnxnt@sha256:b48f6d4e5dff0e52e38cf563968242e0457e1d8f92eb3e68beb1ec61f43991b5` |
+| GHCR mirror | `ghcr.io/dgcosenza/fnxnt@sha256:b48f6d4e5dff0e52e38cf563968242e0457e1d8f92eb3e68beb1ec61f43991b5` |
 | Supply chain | Cosign OIDC signed + SPDX & CycloneDX SBOM attestations + SLSA Build L3 provenance |
 | Security gate (Trivy + Grype on SBOM) | **0 fixable findings of any severity** (82 upstream-unfixed) |
 

@@ -211,4 +211,4 @@ jobs:
           readme-filepath: README.md
           short-description: ${{ env.DOCKERHUB_SHORT_DESCRIPTION }}
         env:
-          DOCKERHUB_SHORT_DESCRIPTION: FNXNT: production-hardened multi-arch network diagnostics toolbox.
+          DOCKERHUB_SHORT_DESCRIPTION: "FNXNT: production-hardened multi-arch network diagnostics toolbox."

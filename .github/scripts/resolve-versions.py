@@ -19,7 +19,7 @@ def main() -> None:
         raise SystemExit("ERROR: FNXNT_VERSION not found in Dockerfile")
     fnxnt_version = m.group(1).strip().strip('"')
 
-    override = os.environ.get("OVERRIDE_FNXNT", "").strip()
+    override = os.environ.get("OVERRIDE_SAMBA", "").strip()
     if override:
         fnxnt_version = override
 
@@ -46,9 +46,10 @@ def main() -> None:
     Path("upstream-changes.md").write_text("\n".join(md), encoding="utf-8")
 
     outputs = {
-        "fnxnt_version": fnxnt_version,
-        "prev_fnxnt_version": prev.get("fnxnt_version", ""),
-        "upstream_changed": "true" if changed else "false",
+        "samba_version": fnxnt_version,
+        "samba_deb_version": "n/a",
+        "debian_base": "alpine:3.24.4",
+        "base_digest": "",
         "build_date": build_date,
         "build_date_iso": build_date_iso,
         "created": build_date_iso,
@@ -65,3 +66,4 @@ def main() -> None:
 if __name__ == "__main__":
     raise SystemExit(main())
 PY
+echo done

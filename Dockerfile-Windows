@@ -1,7 +1,7 @@
 # escape=`
 
 # ==============================================================================
-# 🔥 FNXNT (Fenix' Networking Tools) - Windows Enterprise Network Diagnostics
+# 🔥 FNXNT (Fenix' Networking Tools) - Windows Network Diagnostics
 # ==============================================================================
 #
 # A production-hardened Windows network troubleshooting container that mirrors
@@ -38,7 +38,7 @@
 # This stage downloads pre-built Windows binaries and compiles tools from source
 # where no pre-built Windows binary is available. Uses Go for source builds.
 # ==============================================================================
-FROM mcr.microsoft.com/windows/servercore:ltsc2022 AS binary-builder
+FROM mcr.microsoft.com/windows/servercore:ltsc2022@sha256:f1a914079973258061ddbc95a9af579eab2ee252a6fddb254b1be5d769761acd AS binary-builder
 
 SHELL ["powershell.exe", "-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command"]
 
@@ -186,7 +186,7 @@ RUN $ErrorActionPreference = 'Stop'; `
 # binaries from stage 1 into a clean Server Core image. Configures the
 # PowerShell profile, MOTD banner, aliases, and license documentation.
 # ==============================================================================
-FROM mcr.microsoft.com/windows/servercore:ltsc2022
+FROM mcr.microsoft.com/windows/servercore:ltsc2022@sha256:f1a914079973258061ddbc95a9af579eab2ee252a6fddb254b1be5d769761acd
 
 SHELL ["powershell.exe", "-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command"]
 
@@ -200,7 +200,7 @@ RUN if ('${TARGETARCH}' -ne 'amd64') { throw 'Unsupported architecture. This ima
 # Provides rich metadata for container registries and orchestration platforms
 LABEL maintainer="FNXNT Project" `
       org.opencontainers.image.title="FNXNT-Windows" `
-      org.opencontainers.image.description="Enterprise-grade network diagnostics toolkit for Windows amd64" `
+      org.opencontainers.image.description="Hardened network diagnostics toolkit for Windows amd64" `
       org.opencontainers.image.vendor="FNXNT Project" `
       org.opencontainers.image.version="${FNXNT_VERSION}" `
       org.opencontainers.image.source="https://github.com/nicolaka/netshoot" `
@@ -227,7 +227,7 @@ RUN $ErrorActionPreference = 'Stop'; `
     $motdText = [string]::Join($nl, @( `
         '', `
         '    ===============================================================', `
-        '     FNXNT (Windows) - Enterprise Network Diagnostics Platform', `
+        '     FNXNT (Windows) - Network Diagnostics Toolkit', `
         '     Fenix Networking Tools v' + '${FNXNT_VERSION}', `
         '     Built on Windows Server Core LTSC 2022 | AMD64', `
         '     "Rise from the ashes of network issues"', `

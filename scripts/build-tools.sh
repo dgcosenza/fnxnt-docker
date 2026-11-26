@@ -43,8 +43,20 @@ patch_and_build() {
   cd /src
 }
 
-# Lightweight single-module tools.
-patch_and_build ctop bcicen/ctop v0.7.7 . .
+# ctop's 2021 docker client imports APIs that were removed from newer
+# docker/docker releases. Move it to the maintained client first so the
+# patched container stack is API-compatible.
+echo "==> building ctop"
+git clone --quiet --depth 1 --branch v0.7.7 https://github.com/bcicen/ctop.git /src/ctop
+cd /src/ctop
+go mod download 2>/dev/null || true
+go get github.com/fsouza/go-dockerclient@v1.13.3 github.com/opencontainers/runc@v1.5.3 github.com/containerd/containerd@v1.7.36
+go mod edit -droprequire=github.com/docker/docker
+go get "${PATCH_MODULES[@]}"
+go build -mod=mod -trimpath -ldflags='-s -w' -o /out/ctop .
+test -x /out/ctop
+echo "==> ok ctop"
+cd /src
 patch_and_build grpcurl fullstorydev/grpcurl v1.9.4 ./cmd/grpcurl .
 patch_and_build fortio fortio/fortio v1.77.0 . .
 patch_and_build kubecolor kubecolor/kubecolor v0.9.0 . .

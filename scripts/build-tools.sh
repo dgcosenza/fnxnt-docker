@@ -45,15 +45,16 @@ patch_and_build() {
 
 # ctop's 2021 docker client imports APIs that were removed from newer
 # docker/docker releases. Move it to the maintained client first so the
-# patched container stack is API-compatible.
+# patched dependency set is API-compatible. The optional runc connector is
+# dropped: it is pinned to a runc API that has no release with all published
+# security fixes, while the Docker connector (the primary use case) remains.
 echo "==> building ctop"
 git clone --quiet --depth 1 --branch v0.7.7 https://github.com/bcicen/ctop.git /src/ctop
 cd /src/ctop
+rm -f connector/runc.go connector/collector/runc.go
 go mod download 2>/dev/null || true
-# runc v1.2.8 is the newest release that still ships the cgroups packages
-# ctop imports, and it is also one of the published fixed versions.
-go get github.com/fsouza/go-dockerclient@v1.13.3 github.com/opencontainers/runc@v1.2.8 github.com/containerd/containerd@v1.7.36
-go mod edit -droprequire=github.com/docker/docker
+go get github.com/fsouza/go-dockerclient@v1.13.3
+go mod edit -droprequire=github.com/docker/docker -droprequire=github.com/opencontainers/runc -droprequire=github.com/containerd/containerd
 go get "${PATCH_MODULES[@]}"
 go build -mod=mod -trimpath -ldflags='-s -w' -o /out/ctop .
 test -x /out/ctop

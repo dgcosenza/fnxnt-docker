@@ -120,6 +120,7 @@ Every day CI checks the GitHub releases API (authenticated) for newer tool versi
 - The runtime stage is assembled from the same Debian base as the builder, so no foreign libc or musl-only dependency is introduced.
 - The MOTD and license texts are files under `scripts/` rather than large inline heredocs, keeping the Dockerfile reviewable.
 - The container keeps the upstream root default because network diagnostics often require capabilities; a prepared non-root user is documented and smoke-tested.
+- ctop is compiled with its Docker connector (the primary use case). Its optional direct-runc connector is omitted because the upstream runc API it uses has no release that both compiles and carries every published security fix; all other tooling is unchanged.
 
 ## License
 

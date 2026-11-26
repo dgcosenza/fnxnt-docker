@@ -37,7 +37,7 @@ patch_and_build() {
   rm -rf vendor
   go mod download 2>/dev/null || true
   go get "${PATCH_MODULES[@]}"
-  go build -mod=mod -trimpath -ldflags='-s -w' -o "/out/${name}" "${package}"
+  go build -buildvcs=false -mod=mod -trimpath -ldflags='-s -w' -o "/out/${name}" "${package}"
   test -x "/out/${name}"
   echo "==> ok ${name}"
   cd /src
@@ -56,7 +56,7 @@ go mod download 2>/dev/null || true
 go get github.com/fsouza/go-dockerclient@v1.13.3
 go mod edit -droprequire=github.com/docker/docker -droprequire=github.com/opencontainers/runc -droprequire=github.com/containerd/containerd
 go get "${PATCH_MODULES[@]}"
-go build -mod=mod -trimpath -ldflags='-s -w' -o /out/ctop .
+go build -buildvcs=false -mod=mod -trimpath -ldflags='-s -w' -o /out/ctop .
 test -x /out/ctop
 echo "==> ok ctop"
 cd /src
@@ -75,7 +75,7 @@ git -C /src/hey checkout --quiet --detach e64ec7a3ad1ef8bc828fe61e1fb324cc2e74c6
 cd /src/hey
 go mod download 2>/dev/null || true
 go get "${PATCH_MODULES[@]}"
-go build -mod=mod -trimpath -ldflags='-s -w' -o /out/hey .
+go build -buildvcs=false -mod=mod -trimpath -ldflags='-s -w' -o /out/hey .
 echo "==> ok hey"
 cd /src
 

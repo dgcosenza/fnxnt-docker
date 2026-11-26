@@ -153,7 +153,7 @@ EOF
 
 # hadolint ignore=DL3013
 RUN set -eux; \
-    pip3 install --no-cache-dir --break-system-packages --upgrade \
+    pip3 install --no-cache-dir --break-system-packages --ignore-installed \
         dnspython jaraco-context netaddr netifaces2 pyshark requests wheel; \
     rm -rf /root/.cache/pip /tmp/* /var/tmp/*
 

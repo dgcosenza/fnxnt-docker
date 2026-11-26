@@ -8,9 +8,16 @@ on:
 permissions: {}
 
 jobs:
-  build:
+  public-check:
+    name: Public content check
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
-      - name: Build
-        run: echo "hello"
+        with:
+          persist-credentials: false
+      - name: Verify public-content rules and attribution
+        env:
+          PR_TEXT: ${{ github.event.pull_request.title }} ${{ github.event.pull_request.body }}
+        run: .github/scripts/public-check.sh

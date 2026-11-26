@@ -6,6 +6,22 @@ Format: Keep a Changelog. Semantic Versioning.
 
 <!-- changelog:auto -->
 
+## [1.0.16] — 2026-11-26
+
+### Automated Daily Build
+- Verified components: FNXNT `1.0.16`, Base OS `Debian 13.8 (stable-slim)`.
+- Architectures verified: `linux/amd64, linux/arm64` (native smoke tests + Dive efficiency gate).
+- Upstream changes:
+  - **FNXNT:** `1.0.16` -> `1.0.16`
+  - **Version changed:** `no`
+  - **Base image:** `debian:13.8-slim` pinned at `sha256:8aa5a7bf5a1955bddbe7d74fcdd0b91ab30e74362a8b73af672b0481b35b44a0`
+  - `bcicen/ctop`: pinned `n/a`; latest `v0.7.7`
+  - `projectcalico/calico`: pinned `n/a`; latest `v3.33.1`
+- Vulnerability gate: **0 fixable findings of any severity** in Trivy and Grype (SBOM scan) (82 upstream-unfixed).
+- Published multi-arch digest (Docker Hub + GHCR): `dgcosenza/fnxnt@sha256:7ef1699eb6f91ce1ebacbd343cb4992d8238c5694de23a456fff530ebb71a217` (Cosign OIDC signed + SPDX/CycloneDX SBOM + SLSA L3 provenance).
+
+---
+
 ## [1.0.16] - 2026-11-26
 
 ### Changed

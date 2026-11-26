@@ -23,8 +23,19 @@ FNXNT is a network troubleshooting and diagnostics container built on the curren
 | FNXNT | `1.0.16` |
 | Base OS | `Debian 13.8 (stable-slim)` |
 | Architectures | `linux/amd64, linux/arm64` |
+| Uncompressed size (per arch) | `amd64: 349.8 MB, arm64: 1082.0 MB` |
+| Last verified build (UTC) | `2026-11-26` |
+| Published multi-arch digest | `dgcosenza/fnxnt@sha256:7ef1699eb6f91ce1ebacbd343cb4992d8238c5694de23a456fff530ebb71a217` |
+| GHCR mirror | `ghcr.io/dgcosenza/fnxnt@sha256:7ef1699eb6f91ce1ebacbd343cb4992d8238c5694de23a456fff530ebb71a217` |
 | Supply chain | Cosign OIDC signed + SPDX & CycloneDX SBOM attestations + SLSA Build L3 provenance |
-| Security gate (Trivy + Grype on SBOM) | **0 fixable findings of any severity** |
+| Security gate (Trivy + Grype on SBOM) | **0 fixable findings of any severity** (82 upstream-unfixed) |
+
+**Recent upstream changes:**
+- **FNXNT:** `1.0.16` -> `1.0.16`
+- **Version changed:** `no`
+- **Base image:** `debian:13.8-slim` pinned at `sha256:8aa5a7bf5a1955bddbe7d74fcdd0b91ab30e74362a8b73af672b0481b35b44a0`
+- `bcicen/ctop`: pinned `n/a`; latest `v0.7.7`
+- `projectcalico/calico`: pinned `n/a`; latest `v3.33.1`
 <!-- versions:end -->
 
 ## Supported tags

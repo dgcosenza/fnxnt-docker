@@ -520,6 +520,7 @@ alias h="history"
 
 alias help="fnxnt-motd"
 EOF
+
 # 🎭 MOTD banner (extracted to scripts/motd.sh; version substituted at build time)
 COPY scripts/motd.sh /etc/profile.d/motd.sh
 RUN sed -i "s/@@FNXNT_VERSION@@/${FNXNT_VERSION}/g" /etc/profile.d/motd.sh && \

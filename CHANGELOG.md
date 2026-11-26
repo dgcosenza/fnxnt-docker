@@ -10,8 +10,8 @@ Format: Keep a Changelog. Semantic Versioning.
 
 ### Changed
 - Rebased both build stages on `debian:13.8-slim` pinned by digest; Debian packages replace Alpine packages for the full netshoot-equivalent toolkit.
-- All downloaded release binaries are verified by SHA-256 (kubectl uses the publisher SHA-256 file); hey is built from a pinned commit.
-- CI resolves the Debian base digest and FNXNT version, waits for Docker `healthy` on amd64 and arm64, and syncs the Docker Hub overview.
+- All Go tools are compiled from official pinned sources with Go 1.27.4 and patched module versions to clear every fixable finding; Rust static tools and swaks remain SHA-256 verified.
+- CI resolves the Debian base digest and FNXNT version, builds arm64 on a native runner, waits for Docker `healthy` on both architectures, and syncs the Docker Hub overview.
 
 ### Security
 - Trivy + Grype hard gate: zero fixable findings of any severity on both architectures.

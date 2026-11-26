@@ -85,9 +85,10 @@ Replace the previous image reference with `dgcosenza/fnxnt@sha256:<digest>` (the
 
 ## Security
 
-- Base image fully upgraded at build time; apt lists and caches removed.
+- Both stages use current Debian stable slim (the Go builder is the official `golang:1.27.4-trixie` image pinned by digest); packages are fully upgraded at build time and apt lists are removed.
 - Trivy hard gate: `UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL`, `--ignore-unfixed`, exit code 1. Grype hard gate on the SPDX SBOM: `--only-fixed --fail-on negligible`. Both fail on **any fixable finding of any severity**, on each architecture. No gate is weakened for a release.
-- Upstream binaries are pinned to official releases and verified by SHA-256; kubectl uses the publisher's own checksum file; hey is built from a pinned commit.
+- All Go tools are compiled from official pinned release sources with the patched Go 1.27.4 toolchain and with every Go module that has a published security fix advanced to a fixed version. Rust static binaries and the swaks script are pinned and SHA-256 verified.
+- Native `ubuntu-24.04-arm` runner builds and smoke-tests the arm64 image; no emulation gap.
 - Keyless Cosign signatures and signed SPDX/CycloneDX SBOM attestations on both registries; SLSA Build L3 provenance; Renovate, Dependabot, Hadolint, Gitleaks, public-content check, Scorecard, Dive, and Trivy SARIF upload are part of CI.
 - No secrets are baked into layers.
 

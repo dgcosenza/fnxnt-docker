@@ -142,7 +142,7 @@ jobs:
             grype_sha: f1ba7e2917ee1395618de20a98da0aa7c0fb1788927797651047c50502a37538
           - arch: arm64
             platform: linux/arm64
-            runner: ubuntu-latest
+            runner: ubuntu-24.04-arm
             dive_sha: 2fcd2cf20f634ccdb41efac44048b204bfc867c115641f37a7420693ed480a18
             syft_sha: 8efe605309c98798e1ee0cffdcf8c05ca26819b4cd44c0b03650f1e963e9bdb6
             grype_sha: 819e5be3d9516432fedb7b6b56df7306c3a16607606dfc05826eefbb00e471da

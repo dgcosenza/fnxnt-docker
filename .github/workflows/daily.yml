@@ -279,7 +279,7 @@ jobs:
           sarif_file: 'trivy-results-${{ matrix.arch }}.sarif'
           category: trivy-fnxnt-${{ matrix.arch }}
 
-      - name: Scan image with Trivy — HARD GATE (0 fixable CRITICAL/HIGH, ${{ matrix.arch }})
+      - name: Scan image with Trivy — HARD GATE (0 fixable findings of any severity, ${{ matrix.arch }})
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: '${{ env.IMAGE_NAME }}:ci-candidate-${{ matrix.arch }}'
@@ -289,7 +289,7 @@ jobs:
           ignore-unfixed: true
           exit-code: '1'
 
-      - name: Scan SPDX SBOM with Grype — HARD GATE (0 fixable CRITICAL/HIGH, ${{ matrix.arch }})
+      - name: Scan SPDX SBOM with Grype — HARD GATE (0 fixable findings of any severity, ${{ matrix.arch }})
         shell: bash
         env:
           ARCH: ${{ matrix.arch }}
@@ -667,7 +667,158 @@ jobs:
             cve-diff.json
           retention-days: 90
 
-      - name: Check Docker Hub overview sync credentials
+  update-docs:
+    name: Update docs and sync Docker Hub overview
+    needs: publish
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      checks: write
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Download release metadata
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-metadata
+          path: .ci-meta
+
+      - name: Update versions.json, README.md, and CHANGELOG.md
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/update-docs.py \
+            .ci-meta/versions-new.json \
+            .ci-meta/upstream-changes.md \
+            .ci-meta/cve-diff.json
+          rm -rf .ci-meta
+          .github/scripts/public-check.sh
+
+      - name: Commit docs and push temp branch
+        id: docs_commit
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if [ -n "$(git status --porcelain versions.json README.md CHANGELOG.md)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add versions.json README.md CHANGELOG.md
+            git commit -m "chore(docs): update daily build metadata and changelog [skip ci]"
+            SHA="$(git rev-parse HEAD)"
+            TMPBRANCH="tmp/docs-${GITHUB_RUN_ID}"
+            git branch "$TMPBRANCH"
+            git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+            git push origin "$TMPBRANCH"
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
+            echo "tmpbranch=${TMPBRANCH}" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No documentation or version metadata changes to commit."
+          fi
+
+      - name: Install Gitleaks
+        if: steps.docs_commit.outputs.changed == 'true'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          VER="8.30.1"
+          SHA="551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
+          curl -fsSLo /tmp/gitleaks.tar.gz "https://github.com/gitleaks/gitleaks/releases/download/v${VER}/gitleaks_${VER}_linux_x64.tar.gz"
+          echo "${SHA}  /tmp/gitleaks.tar.gz" | sha256sum -c -
+          tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
+          install -m 0755 /tmp/gitleaks /usr/local/bin/gitleaks
+          rm -f /tmp/gitleaks /tmp/gitleaks.tar.gz
+
+      - name: Run required public content check
+        id: public_check
+        if: always() && steps.docs_commit.outputs.changed == 'true'
+        continue-on-error: true
+        shell: bash
+        env:
+          PR_TEXT: ""
+        run: |
+          set -euo pipefail
+          .github/scripts/public-check.sh 2>&1 | tee /tmp/public-check.txt
+
+      - name: Run required Hadolint lint
+        id: hadolint_check
+        if: always() && steps.docs_commit.outputs.changed == 'true'
+        continue-on-error: true
+        uses: hadolint/hadolint-action@06be81baf89a55ffd0e24b8f04a4185738dd3387 # v3.5.0
+        with:
+          dockerfile: Dockerfile
+          config: .hadolint.yaml
+          failure-threshold: warning
+
+      - name: Run required Gitleaks scan
+        id: gitleaks_check
+        if: always() && steps.docs_commit.outputs.changed == 'true'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          gitleaks git --verbose --redact --no-banner 2>&1 | tee /tmp/gitleaks-check.txt
+
+      - name: Report required checks and push docs to main
+        if: always() && steps.docs_commit.outputs.changed == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ steps.docs_commit.outputs.sha }}
+          TMPBRANCH: ${{ steps.docs_commit.outputs.tmpbranch }}
+          PUBLIC_OUTCOME: ${{ steps.public_check.outcome }}
+          HADOLINT_OUTCOME: ${{ steps.hadolint_check.outcome }}
+          GITLEAKS_OUTCOME: ${{ steps.gitleaks_check.outcome }}
+        run: |
+          set -euo pipefail
+          post_check() {
+            local ctx="$1" outcome="$2" file="$3"
+            local conclusion="success"
+            [ "$outcome" = "success" ] || conclusion="failure"
+            local summary="Outcome: ${outcome}"
+            local text="See the workflow run logs for full details."
+            if [ -f "$file" ] && [ -s "$file" ]; then
+              text="$(tail -c 60000 "$file" | sed 's/\\/\\\\/g; s/"/\\"/g; s/\t/\\t/g' | awk '{printf "%s\\n", $0}')"
+            fi
+            jq -n \
+              --arg name "$ctx" \
+              --arg head_sha "$SHA" \
+              --arg conclusion "$conclusion" \
+              --arg summary "$summary" \
+              --arg text "$text" \
+              '{name:$name, head_sha:$head_sha, status:"completed", conclusion:$conclusion, output:{title:$name, summary:$summary, text:$text}}' \
+              > /tmp/check-run.json
+            gh api -X POST "repos/${GITHUB_REPOSITORY}/check-runs" --input /tmp/check-run.json >/dev/null
+          }
+
+          post_check "Public content check" "$PUBLIC_OUTCOME" /tmp/public-check.txt
+          post_check "Hadolint Dockerfile lint" "$HADOLINT_OUTCOME" hadolint-check.txt
+          post_check "Gitleaks secret scan" "$GITLEAKS_OUTCOME" /tmp/gitleaks-check.txt
+
+          if [ "$PUBLIC_OUTCOME" != "success" ] || [ "$HADOLINT_OUTCOME" != "success" ] || [ "$GITLEAKS_OUTCOME" != "success" ]; then
+            echo "One or more required checks failed; not pushing docs to main." >&2
+            git push origin --delete "$TMPBRANCH" || true
+            exit 1
+          fi
+
+          for _attempt in 1 2 3; do
+            git push origin "${TMPBRANCH}:main" && break
+            echo "push attempt ${_attempt} failed; retrying..." >&2
+            sleep 5
+          done
+          git push origin --delete "$TMPBRANCH" || true
+
+      - name: Check Docker Hub sync credentials
         id: hub_sync
         shell: bash
         env:
@@ -696,3 +847,55 @@ jobs:
           repository: ${{ env.IMAGE_NAME }}
           short-description: ${{ steps.hub_sync.outputs.short_desc }}
           readme-filepath: ./README.md
+
+  alert-on-status:
+    name: Manage CI failure alert issue
+    needs: [public-check, hadolint, gitleaks, resolve, build-test-scan, publish, update-docs]
+    if: always() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Open/update or auto-close ci-failure issue
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RES_PUBLIC: ${{ needs.public-check.result }}
+          RES_HADOLINT: ${{ needs.hadolint.result }}
+          RES_GITLEAKS: ${{ needs.gitleaks.result }}
+          RES_RESOLVE: ${{ needs.resolve.result }}
+          RES_BUILD: ${{ needs.build-test-scan.result }}
+          RES_PUBLISH: ${{ needs.publish.result }}
+          RES_DOCS: ${{ needs.update-docs.result }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          FAILED=()
+          [ "$RES_PUBLIC" != "success" ] && FAILED+=("public-check (${RES_PUBLIC})")
+          [ "$RES_HADOLINT" != "success" ] && FAILED+=("hadolint (${RES_HADOLINT})")
+          [ "$RES_GITLEAKS" != "success" ] && FAILED+=("gitleaks (${RES_GITLEAKS})")
+          [ "$RES_RESOLVE" != "success" ] && FAILED+=("resolve (${RES_RESOLVE})")
+          [ "$RES_BUILD" != "success" ] && FAILED+=("build-test-scan (${RES_BUILD})")
+          [ "$RES_PUBLISH" != "success" ] && FAILED+=("publish (${RES_PUBLISH})")
+          [ "$RES_DOCS" != "success" ] && FAILED+=("update-docs (${RES_DOCS})")
+
+          OPEN_ISSUE="$(gh issue list -R "$GITHUB_REPOSITORY" --label ci-failure --state open --json number --jq '.[0].number // empty')"
+
+          if [ "${#FAILED[@]}" -gt 0 ]; then
+            gh label create ci-failure --repo "$GITHUB_REPOSITORY" --color B60205 --description "Automated daily CI failure alert" --force >/dev/null 2>&1 || true
+            FAIL_LIST="$(IFS=', '; echo "${FAILED[*]}")"
+            TITLE="Daily build failed: ${FAIL_LIST}"
+            BODY="$(printf 'Automated daily pipeline failed on `%s` (%s UTC).\n\n- **Failing job(s):** %s\n- **Event:** `%s`\n- **Workflow run:** %s\n' \
+              "$GITHUB_REF_NAME" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$FAIL_LIST" "${{ github.event_name }}" "$RUN_URL")"
+            if [ -n "$OPEN_ISSUE" ]; then
+              gh issue edit "$OPEN_ISSUE" -R "$GITHUB_REPOSITORY" --title "$TITLE" --body "$BODY"
+              gh issue comment "$OPEN_ISSUE" -R "$GITHUB_REPOSITORY" --body "Latest failing run: ${RUN_URL} (${FAIL_LIST})."
+            else
+              gh issue create -R "$GITHUB_REPOSITORY" --label ci-failure --title "$TITLE" --body "$BODY"
+            fi
+          elif [ -n "$OPEN_ISSUE" ]; then
+            gh issue comment "$OPEN_ISSUE" -R "$GITHUB_REPOSITORY" --body "Daily pipeline recovered and passed on ${RUN_URL}. Closing automatically."
+            gh issue close "$OPEN_ISSUE" -R "$GITHUB_REPOSITORY"
+          else
+            echo "All jobs succeeded and no open ci-failure issue exists."
+          fi

@@ -4,6 +4,7 @@
 [![Packaging](https://img.shields.io/badge/packaging-MIT-blue.svg)](LICENSE)
 [![Upstream](https://img.shields.io/badge/upstream-Apache--2.0-lightgrey.svg)](THIRD-PARTY-NOTICES.md)
 [![Signed](https://img.shields.io/badge/signed-cosign-blue.svg)](https://github.com/dgcosenza/fnxnt-docker)
+[![SLSA](https://img.shields.io/badge/SLSA-Build%20L3-brightgreen.svg)](https://github.com/dgcosenza/fnxnt-docker/attestations)
 [![Architectures](https://img.shields.io/badge/arch-amd64%20%7C%20arm64-blue.svg)](https://github.com/dgcosenza/fnxnt-docker)
 [![Scorecard](https://api.securityscorecards.dev/projects/github.com/dgcosenza/fnxnt-docker/badge)](https://securityscorecards.dev/viewer/?uri=github.com/dgcosenza/fnxnt-docker)
 [![Hub pulls](https://img.shields.io/docker/pulls/dgcosenza/fnxnt.svg)](https://hub.docker.com/r/dgcosenza/fnxnt)
@@ -13,6 +14,18 @@
 Maintainer: Daniel G. Cosenza from FNX Labs
 
 FNXNT is a network troubleshooting and diagnostics container built on the current Debian stable slim release. It provides netshoot-equivalent tooling, curated modern additions, a non-root user, a rich interactive shell, and a real container healthcheck. The image is rebuilt, scanned, signed, and published daily.
+
+## Current versions
+
+<!-- versions:start -->
+| Component | Resolved Version |
+| --- | --- |
+| FNXNT | `1.0.16` |
+| Base OS | `Debian 13.8 (stable-slim)` |
+| Architectures | `linux/amd64, linux/arm64` |
+| Supply chain | Cosign OIDC signed + SPDX & CycloneDX SBOM attestations + SLSA Build L3 provenance |
+| Security gate (Trivy + Grype on SBOM) | **0 fixable findings of any severity** |
+<!-- versions:end -->
 
 ## Supported tags
 

@@ -154,7 +154,8 @@ EOF
 # hadolint ignore=DL3013
 RUN set -eux; \
     pip3 install --no-cache-dir --break-system-packages --ignore-installed \
-        dnspython jaraco-context netaddr netifaces2 pyshark requests wheel; \
+        dnspython jaraco-context netaddr netifaces2 pyshark requests setuptools wheel; \
+    rm -rf /usr/lib/python3/dist-packages/setuptools /usr/lib/python3/dist-packages/setuptools-*.dist-info; \
     rm -rf /root/.cache/pip /tmp/* /var/tmp/*
 
 # hadolint ignore=SC2016

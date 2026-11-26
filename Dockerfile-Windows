@@ -1,0 +1,667 @@
+# escape=`
+
+# ==============================================================================
+# 🔥 FNXNT (Fenix' Networking Tools) - Windows Enterprise Network Diagnostics
+# ==============================================================================
+#
+# A production-hardened Windows network troubleshooting container that mirrors
+# the Linux FNXNT image with curated enhancements optimized for Windows Server.
+#
+# 🎯 Design Philosophy:
+#    • Maximum parity with the Linux FNXNT Dockerfile
+#    • Windows-native runtime on Server Core LTSC 2022
+#    • AMD64-only support (Windows containers are x64 only)
+#    • Multi-stage build for minimal final image footprint
+#    • Rich PowerShell experience with custom profile and MOTD
+#
+# ✨ Key Features:
+#    ✅ Comprehensive networking toolkit (native + added binaries)
+#    ✅ Native Windows diagnostics (ping, tracert, pathping, netsh, etc.)
+#    ✅ Kubernetes management tools (kubectl, kubecolor, kubectx, kubens)
+#    ✅ Custom PowerShell profile with productivity aliases
+#    ✅ Health monitoring and container lifecycle management
+#    ✅ Detailed MOTD banner with quick-start guide
+#
+# 📜 Licensing Model:
+#    • Upstream netshoot: Apache License 2.0 (nicolaka)
+#    • FNXNT enhancements: MIT License
+#    • See C:\licenses\fnxnt\ for complete details
+#
+# 👥 Maintainers: FNXNT Project Team
+# 🔗 Upstream: https://github.com/nicolaka/netshoot
+# 📅 Last Updated: November 8, 2026
+# ==============================================================================
+
+# ==============================================================================
+# 🏗️  STAGE 1: Binary Download & Compilation (amd64 only)
+# ==============================================================================
+# This stage downloads pre-built Windows binaries and compiles tools from source
+# where no pre-built Windows binary is available. Uses Go for source builds.
+# ==============================================================================
+FROM mcr.microsoft.com/windows/servercore:ltsc2022 AS binary-builder
+
+SHELL ["powershell.exe", "-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command"]
+
+# 🎯 Architecture enforcement (Windows containers are amd64 only)
+ARG TARGETARCH=amd64
+
+# 📦 Tool version pinning for reproducible builds
+# Versions verified as latest stable releases as of November 2026
+ARG CTOP_VERSION=0.7.7
+ARG CALICO_VERSION=v3.33.0
+ARG TERMSHARK_VERSION=2.4.0
+ARG GRPCURL_VERSION=1.9.4
+ARG FORTIO_VERSION=1.76.0
+ARG WEBSOCAT_VERSION=1.14.1
+ARG TRIPPY_VERSION=0.13.0
+ARG HEY_VERSION=0.1.5
+ARG KUBECOLOR_VERSION=v0.8.0
+ARG KUBECTX_VERSION=v0.11.0
+ARG KUBENS_VERSION=v0.11.0
+ARG KUBELOGIN_VERSION=v1.36.4
+ARG GO_VERSION=1.27.3
+
+# 🔒 Validate architecture
+RUN if ('${TARGETARCH}' -ne 'amd64') { throw 'Unsupported architecture. This Dockerfile supports only amd64.' }
+
+# 📥 Download all pre-built binaries and compile hey from source
+# Single RUN layer to minimize intermediate image size
+RUN $ErrorActionPreference = 'Stop'; `
+    $ProgressPreference = 'SilentlyContinue'; `
+    New-Item -ItemType Directory -Force C:\out\bin, C:\tmp | Out-Null; `
+    # ─────────────────────────────────────────────────────────────────── `
+    # 📊 ctop - Container metrics and monitoring `
+    # Repository: https://github.com/bcicen/ctop `
+    # ─────────────────────────────────────────────────────────────────── `
+    Write-Host '📥 Downloading ctop v${CTOP_VERSION}...'; `
+    Invoke-WebRequest -Uri "https://github.com/bcicen/ctop/releases/download/v${CTOP_VERSION}/ctop-${CTOP_VERSION}-windows-amd64" -OutFile C:\out\bin\ctop.exe; `
+    # ─────────────────────────────────────────────────────────────────── `
+    # 🌐 calicoctl - Calico network policy management `
+    # Repository: https://github.com/projectcalico/calico `
+    # ─────────────────────────────────────────────────────────────────── `
+    Write-Host '📥 Downloading calicoctl ${CALICO_VERSION}...'; `
+    Invoke-WebRequest -Uri "https://github.com/projectcalico/calico/releases/download/${CALICO_VERSION}/calicoctl-windows-amd64.exe" -OutFile C:\out\bin\calicoctl.exe; `
+    # ─────────────────────────────────────────────────────────────────── `
+    # 🖥️ termshark - Terminal UI for Wireshark `
+    # Repository: https://github.com/gcla/termshark `
+    # ─────────────────────────────────────────────────────────────────── `
+    Write-Host '📥 Downloading termshark v${TERMSHARK_VERSION}...'; `
+    Invoke-WebRequest -Uri "https://github.com/gcla/termshark/releases/download/v${TERMSHARK_VERSION}/termshark_${TERMSHARK_VERSION}_windows_x64.zip" -OutFile C:\tmp\termshark.zip; `
+    Expand-Archive -Path C:\tmp\termshark.zip -DestinationPath C:\tmp\termshark -Force; `
+    Move-Item -Path (Get-ChildItem -Path C:\tmp\termshark -Filter termshark.exe -Recurse | Select-Object -First 1).FullName -Destination C:\out\bin\termshark.exe; `
+    # ─────────────────────────────────────────────────────────────────── `
+    # 🔌 grpcurl - gRPC command-line client `
+    # Repository: https://github.com/fullstorydev/grpcurl `
+    # ─────────────────────────────────────────────────────────────────── `
+    Write-Host '📥 Downloading grpcurl v${GRPCURL_VERSION}...'; `
+    Invoke-WebRequest -Uri "https://github.com/fullstorydev/grpcurl/releases/download/v${GRPCURL_VERSION}/grpcurl_${GRPCURL_VERSION}_windows_x86_64.zip" -OutFile C:\tmp\grpcurl.zip; `
+    Expand-Archive -Path C:\tmp\grpcurl.zip -DestinationPath C:\tmp\grpcurl -Force; `
+    Move-Item -Path C:\tmp\grpcurl\grpcurl.exe -Destination C:\out\bin\grpcurl.exe; `
+    # ─────────────────────────────────────────────────────────────────── `
+    # 🚀 fortio - Load testing and performance benchmarking `
+    # Repository: https://github.com/fortio/fortio `
+    # ─────────────────────────────────────────────────────────────────── `
+    Write-Host '📥 Downloading fortio v${FORTIO_VERSION}...'; `
+    Invoke-WebRequest -Uri "https://github.com/fortio/fortio/releases/download/v${FORTIO_VERSION}/fortio_win_${FORTIO_VERSION}.zip" -OutFile C:\tmp\fortio.zip; `
+    Expand-Archive -Path C:\tmp\fortio.zip -DestinationPath C:\tmp\fortio -Force; `
+    Move-Item -Path C:\tmp\fortio\fortio.exe -Destination C:\out\bin\fortio.exe; `
+    # ─────────────────────────────────────────────────────────────────── `
+    # 🔗 websocat - WebSocket command-line client `
+    # Repository: https://github.com/vi/websocat `
+    # ─────────────────────────────────────────────────────────────────── `
+    Write-Host '📥 Downloading websocat v${WEBSOCAT_VERSION}...'; `
+    Invoke-WebRequest -Uri "https://github.com/vi/websocat/releases/download/v${WEBSOCAT_VERSION}/websocat.x86_64-pc-windows-gnu.exe" -OutFile C:\out\bin\websocat.exe; `
+    # ─────────────────────────────────────────────────────────────────── `
+    # 🛣️ trippy - Modern network diagnostics tool `
+    # Repository: https://github.com/fujiapple852/trippy `
+    # ─────────────────────────────────────────────────────────────────── `
+    Write-Host '📥 Downloading trippy v${TRIPPY_VERSION}...'; `
+    Invoke-WebRequest -Uri "https://github.com/fujiapple852/trippy/releases/download/${TRIPPY_VERSION}/trippy-${TRIPPY_VERSION}-x86_64-pc-windows-msvc.zip" -OutFile C:\tmp\trippy.zip; `
+    Expand-Archive -Path C:\tmp\trippy.zip -DestinationPath C:\tmp\trippy -Force; `
+    Move-Item -Path (Get-ChildItem -Path C:\tmp\trippy -Filter trip.exe -Recurse | Select-Object -First 1).FullName -Destination C:\out\bin\trippy.exe; `
+    # ─────────────────────────────────────────────────────────────────── `
+    # ☸️ kubectl - Kubernetes command-line tool (latest stable) `
+    # ─────────────────────────────────────────────────────────────────── `
+    Write-Host '📥 Downloading kubectl (latest stable)...'; `
+    $kubectlVersion = (Invoke-RestMethod -Uri 'https://dl.k8s.io/release/stable.txt').Trim(); `
+    Invoke-WebRequest -Uri ("https://dl.k8s.io/release/{0}/bin/windows/amd64/kubectl.exe" -f $kubectlVersion) -OutFile C:\out\bin\kubectl.exe; `
+    # ─────────────────────────────────────────────────────────────────── `
+    # 🌈 kubecolor - Colored kubectl wrapper `
+    # Repository: https://github.com/kubecolor/kubecolor `
+    # ─────────────────────────────────────────────────────────────────── `
+    Write-Host '📥 Downloading kubecolor ${KUBECOLOR_VERSION}...'; `
+    $kColor = '${KUBECOLOR_VERSION}'.TrimStart('v'); `
+    Invoke-WebRequest -Uri ("https://github.com/kubecolor/kubecolor/releases/download/v{0}/kubecolor_{0}_windows_amd64.zip" -f $kColor) -OutFile C:\tmp\kubecolor.zip; `
+    Expand-Archive -Path C:\tmp\kubecolor.zip -DestinationPath C:\tmp\kubecolor -Force; `
+    Move-Item -Path C:\tmp\kubecolor\kubecolor.exe -Destination C:\out\bin\kubecolor.exe; `
+    # ─────────────────────────────────────────────────────────────────── `
+    # 🔁 kubectx / kubens - Context & namespace switchers `
+    # Repository: https://github.com/ahmetb/kubectx `
+    # ─────────────────────────────────────────────────────────────────── `
+    Write-Host '📥 Downloading kubectx ${KUBECTX_VERSION}...'; `
+    Invoke-WebRequest -Uri "https://github.com/ahmetb/kubectx/releases/download/${KUBECTX_VERSION}/kubectx_${KUBECTX_VERSION}_windows_x86_64.zip" -OutFile C:\tmp\kubectx.zip; `
+    Expand-Archive -Path C:\tmp\kubectx.zip -DestinationPath C:\tmp\kubectx -Force; `
+    Move-Item -Path C:\tmp\kubectx\kubectx.exe -Destination C:\out\bin\kubectx.exe; `
+    Write-Host '📥 Downloading kubens ${KUBENS_VERSION}...'; `
+    Invoke-WebRequest -Uri "https://github.com/ahmetb/kubectx/releases/download/${KUBENS_VERSION}/kubens_${KUBENS_VERSION}_windows_x86_64.zip" -OutFile C:\tmp\kubens.zip; `
+    Expand-Archive -Path C:\tmp\kubens.zip -DestinationPath C:\tmp\kubens -Force; `
+    Move-Item -Path C:\tmp\kubens\kubens.exe -Destination C:\out\bin\kubens.exe; `
+    # ─────────────────────────────────────────────────────────────────── `
+    # 🔐 kubelogin - Kubernetes OIDC authenticator `
+    # Repository: https://github.com/int128/kubelogin `
+    # ─────────────────────────────────────────────────────────────────── `
+    Write-Host '📥 Downloading kubelogin ${KUBELOGIN_VERSION}...'; `
+    $klogin = '${KUBELOGIN_VERSION}'.TrimStart('v'); `
+    Invoke-WebRequest -Uri ("https://github.com/int128/kubelogin/releases/download/v{0}/kubelogin_windows_amd64.zip" -f $klogin) -OutFile C:\tmp\kubelogin.zip; `
+    Expand-Archive -Path C:\tmp\kubelogin.zip -DestinationPath C:\tmp\kubelogin -Force; `
+    Move-Item -Path C:\tmp\kubelogin\kubelogin.exe -Destination C:\out\bin\kubelogin.exe; `
+    # ─────────────────────────────────────────────────────────────────── `
+    # ⚡ hey - HTTP load generator (built from source) `
+    # Repository: https://github.com/rakyll/hey `
+    # ─────────────────────────────────────────────────────────────────── `
+    Write-Host '🔨 Building hey v${HEY_VERSION} from source...'; `
+    Invoke-WebRequest -Uri "https://go.dev/dl/go${GO_VERSION}.windows-amd64.zip" -OutFile C:\tmp\go.zip; `
+    Expand-Archive -Path C:\tmp\go.zip -DestinationPath C:\ -Force; `
+    $env:Path = 'C:\go\bin;' + $env:Path; `
+    $env:GO111MODULE = 'on'; `
+    $env:CGO_ENABLED = '0'; `
+    $env:GOOS = 'windows'; `
+    $env:GOARCH = 'amd64'; `
+    Invoke-WebRequest -Uri "https://github.com/rakyll/hey/archive/refs/tags/v${HEY_VERSION}.zip" -OutFile C:\tmp\hey.zip; `
+    Expand-Archive -Path C:\tmp\hey.zip -DestinationPath C:\tmp\hey -Force; `
+    $heySrc = (Get-ChildItem -Path C:\tmp\hey -Directory | Select-Object -First 1).FullName; `
+    Push-Location $heySrc; `
+    & go.exe build -trimpath -ldflags '-s -w' -o C:\out\bin\hey.exe .; `
+    Pop-Location; `
+    # ─────────────────────────────────────────────────────────────────── `
+    # 🧹 Cleanup build artifacts `
+    # ─────────────────────────────────────────────────────────────────── `
+    Write-Host '✅ All binaries downloaded/built successfully'; `
+    Remove-Item -Recurse -Force C:\tmp, C:\go
+
+# ==============================================================================
+# 🎨 STAGE 2: Final Production Image Assembly
+# ==============================================================================
+# This stage creates the minimal runtime environment by copying pre-built
+# binaries from stage 1 into a clean Server Core image. Configures the
+# PowerShell profile, MOTD banner, aliases, and license documentation.
+# ==============================================================================
+FROM mcr.microsoft.com/windows/servercore:ltsc2022
+
+SHELL ["powershell.exe", "-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command"]
+
+# 🔒 Validate architecture
+ARG TARGETARCH=amd64
+ARG FNXNT_VERSION=1.0.14
+
+RUN if ('${TARGETARCH}' -ne 'amd64') { throw 'Unsupported architecture. This image is amd64 only.' }
+
+# 🏷️ Image metadata using OCI standard labels
+# Provides rich metadata for container registries and orchestration platforms
+LABEL maintainer="FNXNT Project" `
+      org.opencontainers.image.title="FNXNT-Windows" `
+      org.opencontainers.image.description="Enterprise-grade network diagnostics toolkit for Windows amd64" `
+      org.opencontainers.image.vendor="FNXNT Project" `
+      org.opencontainers.image.version="${FNXNT_VERSION}" `
+      org.opencontainers.image.source="https://github.com/nicolaka/netshoot" `
+      org.opencontainers.image.licenses="Apache-2.0 AND MIT" `
+      org.opencontainers.image.base.name="mcr.microsoft.com/windows/servercore:ltsc2022" `
+      org.opencontainers.image.documentation="https://github.com/nicolaka/netshoot"
+
+# 🌍 Environment configuration
+ENV FNXNT_VERSION=${FNXNT_VERSION} `
+    TERM=xterm `
+    TOOL_HOME=C:\Tools\bin `
+    PATH=C:\Tools\bin;C:\Windows\System32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0
+
+# 📥 Copy pre-built binaries from builder stage
+COPY --from=binary-builder ["C:\\out\\bin\\", "C:\\Tools\\bin\\"]
+
+# 🎨 Configure MOTD, PowerShell profile, aliases, and license documentation
+RUN $ErrorActionPreference = 'Stop'; `
+    New-Item -ItemType Directory -Force C:\ProgramData\fnxnt, C:\licenses\fnxnt | Out-Null; `
+    $nl = [Environment]::NewLine; `
+    # ─────────────────────────────────────────────────────────────────── `
+    # 🎭 MOTD Banner (displayed on container startup) `
+    # ─────────────────────────────────────────────────────────────────── `
+    $motdText = [string]::Join($nl, @( `
+        '', `
+        '    ===============================================================', `
+        '     FNXNT (Windows) - Enterprise Network Diagnostics Platform', `
+        '     Fenix Networking Tools v' + '${FNXNT_VERSION}', `
+        '     Built on Windows Server Core LTSC 2022 | AMD64', `
+        '     "Rise from the ashes of network issues"', `
+        '    ===============================================================', `
+        '', `
+        '    COMPREHENSIVE TOOLKIT INVENTORY', `
+        '    ---------------------------------------------------------------', `
+        '', `
+        '    Connectivity Testing', `
+        '       Native:   ping, tracert, pathping, Test-NetConnection', `
+        '       Added:    websocat', `
+        '', `
+        '    DNS Resolution & Analysis', `
+        '       Native:   nslookup, Resolve-DnsName', `
+        '', `
+        '    Performance & Load Testing', `
+        '       Tools:    fortio, hey', `
+        '', `
+        '    Network Scanning & Protocol Testing', `
+        '       gRPC:     grpcurl', `
+        '       WebSocket: websocat', `
+        '', `
+        '    Traffic Monitoring & Analysis', `
+        '       Capture:  termshark (TUI packet analyzer)', `
+        '       Metrics:  ctop (container metrics)', `
+        '', `
+        '    Routing & Path Analysis', `
+        '       Native:   tracert, pathping, route', `
+        '       Added:    trippy (modern traceroute TUI)', `
+        '', `
+        '    Network Configuration', `
+        '       Native:   ipconfig, netstat, arp, netsh, route', `
+        '', `
+        '    Container & Orchestration', `
+        '       Kubernetes: kubectl, kubecolor, kubectx, kubens, kubelogin', `
+        '       Calico CNI: calicoctl', `
+        '       Containers: ctop', `
+        '', `
+        '    ---------------------------------------------------------------', `
+        '', `
+        '    QUICK START GUIDE', `
+        '    ---------------------------------------------------------------', `
+        '', `
+        '    # Connectivity', `
+        '    ping -n 4 google.com                      # ICMP test', `
+        '    tracert github.com                        # Trace route', `
+        '    pathping 8.8.8.8                          # Path analysis', `
+        '    Test-NetConnection google.com -Port 443   # TCP port test', `
+        '', `
+        '    # DNS Diagnostics', `
+        '    nslookup example.com 8.8.8.8              # DNS query', `
+        '    Resolve-DnsName example.com -Type MX      # PowerShell DNS', `
+        '', `
+        '    # Network Info', `
+        '    ipconfig /all                             # Full IP config', `
+        '    netstat -ano                              # All connections', `
+        '    route print                               # Routing table', `
+        '    arp -a                                    # ARP cache', `
+        '', `
+        '    # Performance Testing', `
+        '    fortio load -qps 1000 -t 30s http://target  # HTTP load test', `
+        '    hey -n 1000 -c 10 http://example.com/    # HTTP benchmarking', `
+        '', `
+        '    # Protocol Testing', `
+        '    grpcurl -plaintext localhost:50051 list    # List gRPC services', `
+        '    websocat ws://echo.websocket.events       # WebSocket testing', `
+        '', `
+        '    # Kubernetes', `
+        '    kubectl get pods -A                       # List all pods', `
+        '    k get pods -A                             # Same with kubecolor', `
+        '    kubectx                                   # Switch contexts', `
+        '    kubens                                    # Switch namespaces', `
+        '    kubelogin                                 # OIDC authentication', `
+        '    calicoctl node status                     # Calico node status', `
+        '', `
+        '    # Advanced', `
+        '    trippy google.com                         # Modern traceroute TUI', `
+        '    ctop                                      # Container metrics', `
+        '    termshark -r capture.pcap                 # Packet analysis TUI', `
+        '', `
+        '    ---------------------------------------------------------------', `
+        '', `
+        '    PRODUCTIVITY ALIASES', `
+        '    ---------------------------------------------------------------', `
+        '', `
+        '    System & Info              File Operations', `
+        '    ff       -> systeminfo     ll       -> Get-ChildItem -Force', `
+        '    k        -> kubecolor      la       -> Get-ChildItem -Force -Name', `
+        '', `
+        '    Network Shortcuts          Quick Actions', `
+        '    ports    -> netstat -ano   c        -> Clear-Host', `
+        '    listening -> LISTENING     e        -> Exit', `
+        '    routes   -> route print    h        -> Get-History', `
+        '    myip     -> ifconfig.me    help     -> Show this guide', `
+        '    connections -> netstat', `
+        '', `
+        '    ---------------------------------------------------------------', `
+        '', `
+        '    TOOL VERSIONS (Latest as of November 2026)', `
+        '    ---------------------------------------------------------------', `
+        '', `
+        '    ctop       v0.7.7          grpcurl     v1.9.4', `
+        '    calicoctl  v3.33.0         fortio      v1.76.0', `
+        '    termshark  v2.4.0          websocat    v1.14.1', `
+        '    trippy     v0.13.0         hey         v0.1.5', `
+        '    kubectl    latest stable   kubecolor   v0.8.0', `
+        '    kubectx    v0.11.0         kubens      v0.11.0', `
+        '    kubelogin  v1.36.4         Go (build)  1.27.3', `
+        '', `
+        '    ---------------------------------------------------------------', `
+        '', `
+        '    RESOURCES & LICENSING', `
+        '    ---------------------------------------------------------------', `
+        '', `
+        '    Upstream:  https://github.com/nicolaka/netshoot', `
+        '    Licenses:  Get-Content C:\licenses\fnxnt\README.txt', `
+        '    Netshoot:  Apache License 2.0 (nicolaka)', `
+        '    FNXNT:     MIT License (FNXNT Project)', `
+        '', `
+        '    ===============================================================', `
+        '    Ready to debug! Type "help" to reopen this guide.', `
+        '    ===============================================================', `
+        '' `
+    )); `
+    Set-Content -Encoding ASCII -Path C:\ProgramData\fnxnt\motd.txt -Value $motdText; `
+    # ─────────────────────────────────────────────────────────────────── `
+    # 📜 MOTD display script `
+    # ─────────────────────────────────────────────────────────────────── `
+    $motdScriptText = [string]::Join($nl, @( `
+        'param([switch]$Force)', `
+        'if ($Force -or (Test-Path C:\ProgramData\fnxnt\motd.txt)) {', `
+        '    Get-Content C:\ProgramData\fnxnt\motd.txt', `
+        '}' `
+    )); `
+    Set-Content -Encoding ASCII -Path C:\ProgramData\fnxnt\motd.ps1 -Value $motdScriptText; `
+    # ─────────────────────────────────────────────────────────────────── `
+    # 🔧 fnxnt-motd wrapper (callable from PATH) `
+    # ─────────────────────────────────────────────────────────────────── `
+    $motdWrapperText = [string]::Join($nl, @( `
+        'param()', `
+        '& C:\ProgramData\fnxnt\motd.ps1 -Force' `
+    )); `
+    Set-Content -Encoding ASCII -Path C:\Tools\bin\fnxnt-motd.ps1 -Value $motdWrapperText; `
+    $motdCmdText = [string]::Join($nl, @( `
+        '@echo off', `
+        'powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File C:\Tools\bin\fnxnt-motd.ps1' `
+    )); `
+    Set-Content -Encoding ASCII -Path C:\Tools\bin\fnxnt-motd.cmd -Value $motdCmdText; `
+    # ─────────────────────────────────────────────────────────────────── `
+    # 🐚 PowerShell profile with MOTD, aliases, and helper functions `
+    # ─────────────────────────────────────────────────────────────────── `
+    $profileText = [string]::Join($nl, @( `
+        '# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', `
+        '# FNXNT (Windows) - PowerShell Profile', `
+        '# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', `
+        '', `
+        '# Display MOTD on first shell login', `
+        '$motd = "C:\ProgramData\fnxnt\motd.ps1"', `
+        'if ((Test-Path $motd) -and (-not $env:MOTD_SHOWN)) {', `
+        '    $env:MOTD_SHOWN = "1"', `
+        '    & $motd -Force', `
+        '}', `
+        '', `
+        '# ── Kubernetes Shortcuts ──', `
+        'Set-Alias k kubecolor', `
+        '', `
+        '# ── Quick Actions ──', `
+        'Set-Alias c Clear-Host', `
+        'function e { exit }', `
+        'Set-Alias h Get-History', `
+        '', `
+        '# ── Help ──', `
+        'function help { & C:\Tools\bin\fnxnt-motd.ps1 }', `
+        '', `
+        '# ── File Operations ──', `
+        'function ll { Get-ChildItem -Force @args }', `
+        'function la { Get-ChildItem -Force -Name @args }', `
+        '', `
+        '# ── Network Diagnostics ──', `
+        'function ports { netstat -ano }', `
+        'function listening { netstat -ano | Select-String LISTENING }', `
+        'function routes { route print }', `
+        'function connections { netstat -ano }', `
+        'function myip {', `
+        '    try {', `
+        '        (Invoke-RestMethod -Uri "https://ifconfig.me/ip" -TimeoutSec 5).ToString().Trim()', `
+        '    } catch {', `
+        '        "unavailable"', `
+        '    }', `
+        '}', `
+        '', `
+        '# ── System Info ──', `
+        'function ff { systeminfo | Select-Object -First 25 }' `
+    )); `
+    Set-Content -Encoding ASCII -Path C:\ProgramData\fnxnt\profile.ps1 -Value $profileText; `
+    # ─────────────────────────────────────────────────────────────────── `
+    # 👤 Install profile for both container users `
+    # ─────────────────────────────────────────────────────────────────── `
+    $profiles = @( `
+        'C:\Users\ContainerAdministrator\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1', `
+        'C:\Users\ContainerUser\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1' `
+    ); `
+    foreach ($p in $profiles) { `
+        $dir = Split-Path -Parent $p; `
+        New-Item -ItemType Directory -Force $dir | Out-Null; `
+        Copy-Item C:\ProgramData\fnxnt\profile.ps1 $p -Force; `
+    }; `
+    # ─────────────────────────────────────────────────────────────────── `
+    # 📜 License documentation `
+    # ─────────────────────────────────────────────────────────────────── `
+    $licenseText = [string]::Join($nl, @( `
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', `
+        'FNXNT (Windows) LICENSING INFORMATION', `
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', `
+        '', `
+        'This container image is based on nicolaka/netshoot concepts and', `
+        'includes enhancements by the FNXNT project.', `
+        '', `
+        '1. ORIGINAL NETSHOOT COMPONENTS', `
+        '   License:    Apache License 2.0', `
+        '   Copyright:  nicolaka', `
+        '   Repository: https://github.com/nicolaka/netshoot', `
+        '', `
+        '2. FNXNT ENHANCEMENTS AND MODIFICATIONS', `
+        '   License:    MIT License', `
+        '   Copyright:  FNXNT Project (2025-2026)', `
+        '', `
+        '3. THIRD-PARTY TOOLS', `
+        '   ctop:       MIT License', `
+        '   calicoctl:  Apache License 2.0', `
+        '   termshark:  MIT License', `
+        '   grpcurl:    MIT License', `
+        '   fortio:     Apache License 2.0', `
+        '   websocat:   MIT License', `
+        '   trippy:     Apache License 2.0', `
+        '   kubectl:    Apache License 2.0', `
+        '   kubecolor:  MIT License', `
+        '   kubectx:    Apache License 2.0', `
+        '   kubens:     Apache License 2.0', `
+        '   kubelogin:  Apache License 2.0', `
+        '   hey:        Apache License 2.0', `
+        '', `
+        'View this file: Get-Content C:\licenses\fnxnt\README.txt', `
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━' `
+    )); `
+    Set-Content -Encoding ASCII -Path C:\licenses\fnxnt\README.txt -Value $licenseText; `
+    # ─────────────────────────────────────────────────────────────────── `
+    # 🧹 Aggressive cleanup to minimize final image size `
+    # ─────────────────────────────────────────────────────────────────── `
+    Remove-Item -Recurse -Force C:\Windows\Temp\* -ErrorAction SilentlyContinue; `
+    Remove-Item -Recurse -Force C:\Users\ContainerAdministrator\AppData\Local\Temp\* -ErrorAction SilentlyContinue; `
+    Write-Host '✅ FNXNT Windows image configured successfully'
+
+# 🏥 Container health check
+# Ensures the container networking stack is functional
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 `
+    CMD cmd /S /C "ping -n 1 127.0.0.1 >NUL || exit /b 1"
+
+# 🏠 Set working directory
+WORKDIR C:/
+
+# 🐚 Default command launches PowerShell for interactive sessions
+CMD ["powershell.exe", "-NoLogo"]
+
+# ==============================================================================
+# 📖 USAGE DOCUMENTATION
+# ==============================================================================
+#
+# ┌───────────────────────────────────────────────────────────────────────┐
+# │ 🏗️  BUILDING THE IMAGE                                                 │
+# └───────────────────────────────────────────────────────────────────────┘
+#
+# Build for Windows amd64 (requires Windows Docker daemon):
+#   docker build --platform=windows/amd64 -f Dockerfile-Windows `
+#     -t fnxnt:windows-amd64 .
+#
+# Build with custom version:
+#   docker build --build-arg FNXNT_VERSION=1.0.14-custom `
+#     -f Dockerfile-Windows -t fnxnt:custom-win .
+#
+# ⚠️  NOTE: Windows container images can ONLY be built on a Windows host
+# with Docker in Windows containers mode (Docker Desktop or Docker EE).
+# They cannot be built from WSL2 or Linux Docker daemons.
+#
+# ┌───────────────────────────────────────────────────────────────────────┐
+# │ 🚀 RUNNING CONTAINERS                                                  │
+# └───────────────────────────────────────────────────────────────────────┘
+#
+# Interactive session:
+#   docker run -it --rm fnxnt:windows-amd64
+#
+# Debug another container's network:
+#   docker run -it --rm --net container:<container_name> `
+#     fnxnt:windows-amd64
+#
+# With Docker named pipe for ctop:
+#   docker run -it --rm `
+#     -v \\.\pipe\docker_engine:\\.\pipe\docker_engine `
+#     fnxnt:windows-amd64
+#
+# Run a quick command:
+#   docker run --rm fnxnt:windows-amd64 `
+#     powershell -Command "Test-NetConnection google.com -Port 443"
+#
+# ┌───────────────────────────────────────────────────────────────────────┐
+# │ ☸️  KUBERNETES DEPLOYMENTS                                             │
+# └───────────────────────────────────────────────────────────────────────┘
+#
+# Standalone debugging pod (Windows node pool):
+#   kubectl run fnxnt-win-debug --rm -it `
+#     --image=fnxnt:windows-amd64 `
+#     --restart=Never `
+#     --overrides='{"spec":{"nodeSelector":{"kubernetes.io/os":"windows"}}}' `
+#     -- powershell.exe -NoLogo
+#
+# Ephemeral debug container (requires Kubernetes 1.23+):
+#   kubectl debug <pod-name> -it `
+#     --image=fnxnt:windows-amd64 `
+#     --target=<container-name>
+#
+# ┌───────────────────────────────────────────────────────────────────────┐
+# │ 🐳 DOCKER COMPOSE EXAMPLE                                              │
+# └───────────────────────────────────────────────────────────────────────┘
+#
+# services:
+#   debug:
+#     image: fnxnt:windows-amd64
+#     network_mode: "service:app"
+#     command: powershell -Command "ping -t app"
+#   app:
+#     image: mcr.microsoft.com/windows/servercore/iis:ltsc2022
+#     ports:
+#       - "80:80"
+#
+# ┌───────────────────────────────────────────────────────────────────────┐
+# │ 📊 ADVANCED USE CASES                                                  │
+# └───────────────────────────────────────────────────────────────────────┘
+#
+# Packet analysis on captured file:
+#   docker run -it --rm `
+#     -v C:\captures:C:\data `
+#     fnxnt:windows-amd64 `
+#     termshark -r C:\data\capture.pcap
+#
+# HTTP load testing with results:
+#   docker run --rm fnxnt:windows-amd64 `
+#     fortio load -qps 1000 -t 30s http://target-service
+#
+# gRPC service inspection:
+#   docker run --rm fnxnt:windows-amd64 `
+#     grpcurl -plaintext target:50051 list
+#
+# Modern traceroute with TUI:
+#   docker run -it --rm fnxnt:windows-amd64 `
+#     trippy google.com
+#
+# ┌───────────────────────────────────────────────────────────────────────┐
+# │ 🔒 SECURITY BEST PRACTICES                                             │
+# └───────────────────────────────────────────────────────────────────────┘
+#
+# Run as ContainerUser (non-admin) when possible:
+#   docker run -it --rm --user ContainerUser fnxnt:windows-amd64
+#
+# Scan for vulnerabilities:
+#   docker scout cves fnxnt:windows-amd64
+#   trivy image fnxnt:windows-amd64
+#
+# ┌───────────────────────────────────────────────────────────────────────┐
+# │ 🎯 IMAGE OPTIMIZATION METRICS                                          │
+# └───────────────────────────────────────────────────────────────────────┘
+#
+# • Multi-stage build keeps only runtime binaries in final image
+# • Single RUN commands minimize layer overhead
+# • Aggressive temp cleanup after installation
+# • No build tools (Go SDK, archives) in final image
+#
+# ==============================================================================
+#
+# 🔄 VERSION HISTORY
+# ==============================================================================
+#
+# v1.0.14 (November 2026) - Stay Current Dependency Refresh
+#   • Updated external tool dependencies: calicoctl v3.33.0, grpcurl v1.9.4,
+#     fortio v1.76.0, kubecolor v0.8.0, kubelogin v1.36.4
+#   • Updated Go toolchain to 1.27.3 for hey compilation in Stage 1 builder
+#   • Synchronized parity, version labels, and documentation with Linux v1.0.14
+#
+# v1.0.12 (August 2026) - Dependency Currency & Builder Optimization
+#   • Updated external tool dependencies: calicoctl v3.32.1, kubelogin v1.36.3
+#   • Updated Go toolchain to 1.26.6 for hey compilation in Stage 1 builder
+#   • Synchronized parity, version labels, and documentation with Linux v1.0.12
+#
+# v1.0.11 (June 2026) - Dependency Currency & Audit Hardening
+#   • Refreshed to latest stable: calicoctl v3.32.0, fortio v1.75.2, kubecolor v0.6.0,
+#     kubectx/kubens v0.11.0, kubelogin v1.36.2, Go 1.26.4 (source build)
+#   • Fixed broken `e` shortcut (Set-Alias -> function e { exit })
+#   • Removed inaccurate "httpie" MOTD entry; restored System32\Wbem on PATH
+#   • Base image kept at Server Core LTSC 2022 (Windows host-version coupling)
+#
+# v1.0.10 (February 2026) - Initial Windows Variant
+#   • First release of the Windows Dockerfile matching Linux v1.0.10
+#   • All tool versions synced with Linux variant
+#   • Custom PowerShell profile with aliases and MOTD
+#   • Go updated to v1.26.0 for hey source build
+#   • Comprehensive MOTD with full toolkit inventory
+#   • License documentation in C:\licenses\fnxnt\
+#   • Health check via loopback ping
+#   • Multi-stage build (Server Core LTSC 2022)
+#
+# ==============================================================================
+#
+# 🙏 ACKNOWLEDGMENTS
+# ==============================================================================
+#
+# This project builds upon the excellent work of nicolaka/netshoot.
+# We're grateful to the original author and all contributors for creating
+# such a valuable tool for the networking community.
+#
+# Special thanks to:
+#   • nicolaka - Original netshoot creator and maintainer
+#   • Microsoft - For Windows Server Core container images
+#   • All open-source tool maintainers whose work is included here
+#
+# ==============================================================================
+#
+# 📬 SUPPORT & CONTRIBUTIONS
+# ==============================================================================
+#
+# For issues, feature requests, or contributions related to FNXNT enhancements:
+#   • Review the upstream netshoot project first
+#   • Check if the issue is specific to FNXNT modifications
+#   • Provide detailed reproduction steps and environment info
+#
+# For issues with the original netshoot functionality:
+#   • Please refer to: https://github.com/nicolaka/netshoot
+#
+# ==============================================================================

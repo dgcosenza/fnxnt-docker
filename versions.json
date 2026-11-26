@@ -1,0 +1,24 @@
+{
+  "fnxnt_version": "1.0.15",
+  "alpine_version": "3.24.4",
+  "components": {
+    "ctop": "0.7.7",
+    "calicoctl": "3.33.1",
+    "termshark": "2.4.0",
+    "grpcurl": "1.9.4",
+    "fortio": "1.77.0",
+    "websocat": "1.14.2",
+    "trippy": "0.13.0",
+    "hey": "0.1.5",
+    "kubecolor": "0.9.0",
+    "kubectx": "0.11.0",
+    "kubens": "0.11.0",
+    "kubelogin": "1.36.4",
+    "swaks": "v20240103.0",
+    "kubectl": "latest stable"
+  },
+  "architectures": [
+    "linux/amd64",
+    "linux/arm64"
+  ]
+}

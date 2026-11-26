@@ -1,0 +1,11 @@
+services:
+  debug:
+    image: dgcosenza/fnxnt:latest
+    network_mode: "service:app"
+    command: tcpdump -i eth0 -nn -w /captures/traffic.pcap
+    volumes:
+      - ./captures:/captures
+  app:
+    image: nginx:alpine
+    ports:
+      - "80:80"

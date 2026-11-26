@@ -7,6 +7,7 @@
 [![SLSA](https://img.shields.io/badge/SLSA-Build%20L3-brightgreen.svg)](https://github.com/dgcosenza/fnxnt-docker/attestations)
 [![Architectures](https://img.shields.io/badge/arch-amd64%20%7C%20arm64-blue.svg)](https://github.com/dgcosenza/fnxnt-docker)
 [![Scorecard](https://api.securityscorecards.dev/projects/github.com/dgcosenza/fnxnt-docker/badge)](https://securityscorecards.dev/viewer/?uri=github.com/dgcosenza/fnxnt-docker)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/17159/badge)](https://www.bestpractices.dev/projects/17159)
 [![Hub pulls](https://img.shields.io/docker/pulls/dgcosenza/fnxnt.svg)](https://hub.docker.com/r/dgcosenza/fnxnt)
 [![Image size](https://img.shields.io/docker/image-size/dgcosenza/fnxnt/latest.svg)](https://hub.docker.com/r/dgcosenza/fnxnt/tags)
 [![Version](https://img.shields.io/badge/version-1.0.16-blue.svg)](CHANGELOG.md)

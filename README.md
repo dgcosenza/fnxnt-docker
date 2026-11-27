@@ -1,16 +1,33 @@
 # FNXNT — Fenix' Networking Tools
 
-[![Build](https://github.com/dgcosenza/fnxnt-docker/actions/workflows/daily.yml/badge.svg)](https://github.com/dgcosenza/fnxnt-docker/actions/workflows/daily.yml)
-[![Packaging](https://img.shields.io/badge/packaging-MIT-blue.svg)](LICENSE)
-[![Upstream](https://img.shields.io/badge/upstream-Apache--2.0-lightgrey.svg)](THIRD-PARTY-NOTICES.md)
-[![Signed](https://img.shields.io/badge/signed-cosign-blue.svg)](https://github.com/dgcosenza/fnxnt-docker)
-[![SLSA](https://img.shields.io/badge/SLSA-Build%20L3-brightgreen.svg)](https://github.com/dgcosenza/fnxnt-docker/attestations)
-[![Architectures](https://img.shields.io/badge/arch-amd64%20%7C%20arm64-blue.svg)](https://github.com/dgcosenza/fnxnt-docker)
-[![Scorecard](https://api.securityscorecards.dev/projects/github.com/dgcosenza/fnxnt-docker/badge)](https://securityscorecards.dev/viewer/?uri=github.com/dgcosenza/fnxnt-docker)
+[![Daily CI](https://github.com/dgcosenza/fnxnt-docker/actions/workflows/daily.yml/badge.svg)](https://github.com/dgcosenza/fnxnt-docker/actions/workflows/daily.yml)
+[![OpenSSF Scorecard Workflow](https://github.com/dgcosenza/fnxnt-docker/actions/workflows/scorecard.yml/badge.svg)](https://github.com/dgcosenza/fnxnt-docker/actions/workflows/scorecard.yml)
+[![Gitleaks Secret Scan](https://github.com/dgcosenza/fnxnt-docker/actions/workflows/gitleaks.yml/badge.svg)](https://github.com/dgcosenza/fnxnt-docker/actions/workflows/gitleaks.yml)
+[![Public Content Check](https://github.com/dgcosenza/fnxnt-docker/actions/workflows/public-check.yml/badge.svg)](https://github.com/dgcosenza/fnxnt-docker/actions/workflows/public-check.yml)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/dgcosenza/fnxnt-docker/badge)](https://scorecard.dev/viewer/?uri=github.com/dgcosenza/fnxnt-docker)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/17159/badge)](https://www.bestpractices.dev/projects/17159)
-[![Hub pulls](https://img.shields.io/docker/pulls/dgcosenza/fnxnt.svg)](https://hub.docker.com/r/dgcosenza/fnxnt)
-[![Image size](https://img.shields.io/docker/image-size/dgcosenza/fnxnt/latest.svg)](https://hub.docker.com/r/dgcosenza/fnxnt/tags)
-[![Version](https://img.shields.io/badge/version-1.0.16-blue.svg)](CHANGELOG.md)
+
+[![Trivy + Grype: 0 Fixable CVEs](https://img.shields.io/badge/Trivy%20%2B%20Grype-0%20fixable%20CVEs-brightgreen?logo=trivy&logoColor=white)](https://github.com/dgcosenza/fnxnt-docker/security/code-scanning)
+[![Signed: Cosign OIDC](https://img.shields.io/badge/signed-Cosign%20OIDC-blueviolet)](https://github.com/dgcosenza/fnxnt-docker#security)
+[![SLSA Build L3](https://img.shields.io/badge/SLSA-Build%20L3-brightgreen)](https://github.com/dgcosenza/fnxnt-docker/attestations)
+[![SBOM: SPDX + CycloneDX](https://img.shields.io/badge/SBOM-SPDX%20%2B%20CycloneDX-0A7BBB?logo=spdx&logoColor=white)](https://github.com/dgcosenza/fnxnt-docker/releases/latest)
+[![Base OS](https://img.shields.io/badge/base-Debian%2013%20(trixie--slim)-A81D33?logo=debian&logoColor=white)](https://github.com/dgcosenza/fnxnt-docker/blob/main/Dockerfile)
+[![Architectures](https://img.shields.io/badge/arch-amd64%20%7C%20arm64-007ec6?logo=linux&logoColor=white)](https://github.com/dgcosenza/fnxnt-docker#supported-tags)
+[![Healthcheck: CI Verified](https://img.shields.io/badge/healthcheck-CI%20verified-brightgreen?logo=docker&logoColor=white)](https://github.com/dgcosenza/fnxnt-docker#healthcheck)
+[![Renovate Enabled](https://img.shields.io/badge/renovate-enabled-1A1F6C?logo=renovate&logoColor=white)](https://github.com/dgcosenza/fnxnt-docker/blob/main/renovate.json)
+[![Dependabot Enabled](https://img.shields.io/badge/dependabot-enabled-025E8C?logo=dependabot&logoColor=white)](https://github.com/dgcosenza/fnxnt-docker/blob/main/.github/dependabot.yml)
+[![Daily Rebuilds](https://img.shields.io/badge/rebuilds-daily-2088FF?logo=githubactions&logoColor=white)](https://github.com/dgcosenza/fnxnt-docker/actions/workflows/daily.yml)
+
+[![Latest Release](https://img.shields.io/github/v/release/dgcosenza/fnxnt-docker?label=version&logo=github)](https://github.com/dgcosenza/fnxnt-docker/releases/latest)
+[![Release Date](https://img.shields.io/github/release-date/dgcosenza/fnxnt-docker?label=released&logo=github)](https://github.com/dgcosenza/fnxnt-docker/releases/latest)
+[![Last Commit](https://img.shields.io/github/last-commit/dgcosenza/fnxnt-docker?logo=github)](https://github.com/dgcosenza/fnxnt-docker/commits/main)
+[![Docker Pulls](https://img.shields.io/docker/pulls/dgcosenza/fnxnt?logo=docker&logoColor=white)](https://hub.docker.com/r/dgcosenza/fnxnt)
+[![Docker Image Size](https://img.shields.io/docker/image-size/dgcosenza/fnxnt/latest?logo=docker&logoColor=white)](https://hub.docker.com/r/dgcosenza/fnxnt)
+[![Registries: Docker Hub + GHCR](https://img.shields.io/badge/registries-Docker%20Hub%20%2B%20GHCR-2496ED?logo=docker&logoColor=white)](https://github.com/dgcosenza/fnxnt-docker/pkgs/container/fnxnt)
+[![Packaging License: MIT](https://img.shields.io/badge/packaging-MIT-blue?logo=opensourceinitiative&logoColor=white)](https://github.com/dgcosenza/fnxnt-docker/blob/main/LICENSE)
+[![Upstream License](https://img.shields.io/badge/upstream-Apache--2.0-green?logo=opensourceinitiative&logoColor=white)](https://github.com/dgcosenza/fnxnt-docker/blob/main/THIRD-PARTY-NOTICES.md)
+[![GitHub Issues](https://img.shields.io/github/issues/dgcosenza/fnxnt-docker?logo=github)](https://github.com/dgcosenza/fnxnt-docker/issues)
+[![FNX Labs Catalog](https://img.shields.io/badge/catalog-FNX%20Labs-0b1020?logo=githubpages&logoColor=white)](https://dgcosenza.github.io/)
 
 Maintainer: Daniel G. Cosenza from FNX Labs
 

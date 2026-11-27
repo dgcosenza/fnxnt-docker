@@ -18,8 +18,7 @@ Format: Keep a Changelog. Semantic Versioning.
   - `bcicen/ctop`: pinned `n/a`; latest `v0.7.7`
   - `projectcalico/calico`: pinned `n/a`; latest `v3.33.1`
 - Vulnerability gate: **0 fixable findings of any severity** in Trivy and Grype (SBOM scan) (82 upstream-unfixed).
-- Published multi-arch digest (Docker Hub + GHCR): `dgcosenza/fnxnt@sha256:f42d347cd1da286d61fbdc01b36d22bc5c154f92718f9caf685cf4ae75c13717` (Cosign OIDC signed + SPDX/CycloneDX SBOM + SLSA L3 provenance).
-
+- Published multi-arch digest (Docker Hub + GHCR): `dgcosenza/fnxnt@sha256:e4b58b15fcc9875f6dcd4060b534a9cb1ed721eedd2380885122e5cc837c5b0f` (Cosign OIDC signed + SPDX/CycloneDX SBOM + SLSA L3 provenance).
 ---
 
 ## [1.0.16] — 2026-11-26

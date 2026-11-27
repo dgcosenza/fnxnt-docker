@@ -13,7 +13,7 @@
   ],
   "sizes_mb": {
     "amd64": "349.8",
-    "arm64": "1082.0"
+    "arm64": "1082.2"
   },
   "signed": true,
   "slsa_provenance": true,
@@ -24,10 +24,10 @@
   "base_image": "debian:13.8-slim",
   "base_digest": "sha256:8aa5a7bf5a1955bddbe7d74fcdd0b91ab30e74362a8b73af672b0481b35b44a0",
   "debian_version": "13.8",
-  "build_date": "2026-11-26",
-  "built_at_utc": "2026-11-26T23:27:00Z",
-  "image_digest": "dgcosenza/fnxnt@sha256:d12b1e8e3bfad863218a0596c4a0f66869ace2053945b228ad7d239e3ea23be6",
-  "ghcr_digest": "ghcr.io/dgcosenza/fnxnt@sha256:d12b1e8e3bfad863218a0596c4a0f66869ace2053945b228ad7d239e3ea23be6",
+  "build_date": "2026-11-27",
+  "built_at_utc": "2026-11-27T15:27:00Z",
+  "image_digest": "dgcosenza/fnxnt@sha256:f42d347cd1da286d61fbdc01b36d22bc5c154f92718f9caf685cf4ae75c13717",
+  "ghcr_digest": "ghcr.io/dgcosenza/fnxnt@sha256:f42d347cd1da286d61fbdc01b36d22bc5c154f92718f9caf685cf4ae75c13717",
   "fixable_critical_high": 0,
   "unfixed_cves": [
     "CVE-2019-16224",

@@ -41,10 +41,10 @@ FNXNT is a network troubleshooting and diagnostics container built on the curren
 | FNXNT | `1.0.16` |
 | Base OS | `Debian 13.8 (stable-slim)` |
 | Architectures | `linux/amd64, linux/arm64` |
-| Uncompressed size (per arch) | `amd64: 349.8 MB, arm64: 1082.2 MB` |
-| Last verified build (UTC) | `2026-11-27` |
-| Published multi-arch digest | `dgcosenza/fnxnt@sha256:e4b58b15fcc9875f6dcd4060b534a9cb1ed721eedd2380885122e5cc837c5b0f` |
-| GHCR mirror | `ghcr.io/dgcosenza/fnxnt@sha256:e4b58b15fcc9875f6dcd4060b534a9cb1ed721eedd2380885122e5cc837c5b0f` |
+| Uncompressed size (per arch) | `amd64: 349.8 MB, arm64: 1082.3 MB` |
+| Last verified build (UTC) | `2026-11-28` |
+| Published multi-arch digest | `dgcosenza/fnxnt@sha256:eda233aff03eb9bee326d133253f26b53a62972a8654b6581c263cd84d71cf4f` |
+| GHCR mirror | `ghcr.io/dgcosenza/fnxnt@sha256:eda233aff03eb9bee326d133253f26b53a62972a8654b6581c263cd84d71cf4f` |
 | Supply chain | Cosign OIDC signed + SPDX & CycloneDX SBOM attestations + SLSA Build L3 provenance |
 | Security gate (Trivy + Grype on SBOM) | **0 fixable findings of any severity** (82 upstream-unfixed) |
 
